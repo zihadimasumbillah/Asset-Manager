@@ -1,0 +1,51 @@
+You are an expert full-stack MERN (MongoDB, Express.js, React, Node.js) developer. Your task is to build a Financial Health & Anomaly Dashboard. This is a micro-SaaS application that handles user interfaces and API routing, while delegating heavy AI data processing to an external n8n webhook.
+
+Tech Stack:
+
+Frontend: React.js (Vite), TailwindCSS for styling, Recharts or Chart.js for data visualization.
+
+Backend: Node.js, Express.js.
+
+Database: MongoDB (using Mongoose).
+
+Project Execution Plan (Execute step-by-step and ask for my approval before moving to the next step):
+
+Step 1: Database & Backend Foundation
+
+Initialize a Node.js/Express server and connect to MongoDB.
+
+Create a User schema (for basic authentication/tenant isolation) and a FinancialReport schema. The FinancialReport schema must include fields for: userId, status (processing, completed, failed), healthScore, anomalies (an array of objects containing severity, description, and variance), and chartData (month-over-month revenue/expenses).
+
+Set up basic Express middleware (CORS, JSON parsing).
+
+Step 2: Frontend Dashboard Shell
+
+Create a responsive React dashboard layout using TailwindCSS.
+
+Build a "File Upload" component that accepts .csv files (Profit and Loss statements).
+
+Build placeholder UI components for the dashboard: A main line chart for Revenue vs. Expenses, a donut chart for Expense Breakdowns, a prominent "Financial Health Score" metric card, and an "Anomalies Detected" feed that will display severity badges (High/Medium/Low).
+
+Step 3: Upload API & n8n Handoff (The Proxy Pattern)
+
+Create an Express route (POST /api/upload-ledger).
+
+When a CSV is uploaded, the Express server should temporarily store the file and generate a URL for it.
+
+The Express server must then dispatch an asynchronous HTTP POST request to a placeholder external n8n webhook URL (N8N_WEBHOOK_URL in .env), passing the file URL and the userId in the payload.
+
+Crucially, the Express route must respond to the React frontend immediately with a status of "processing" to prevent HTTP timeout errors while n8n does the heavy AI lifting.
+
+Step 4: n8n Callback Receiver
+
+Create a dedicated Express route (POST /api/webhook/n8n-response) to act as the receiver for the n8n agent's final output.
+
+This endpoint expects a structured JSON payload containing the computed variances, anomalies, and AI commentary.
+
+When this endpoint is hit, update the corresponding FinancialReport document in MongoDB with the new data and change the status to "completed".
+
+Step 5: Real-Time Frontend Sync
+
+Implement a polling mechanism (or WebSockets) on the React frontend that checks the status of the user's latest FinancialReport every 5 seconds.
+
+Once the status changes to "completed", dynamically populate the Recharts components and the Anomaly feed with the data retrieved from MongoDB.
