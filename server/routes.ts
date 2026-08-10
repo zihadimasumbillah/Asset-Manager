@@ -42,7 +42,9 @@ const upload = multer({
     if (isCSV) {
       cb(null, true);
     } else {
-      cb(new Error("Only CSV files are allowed."));
+      const err = new Error("Only CSV files are allowed.") as Error & { status?: number };
+      err.status = 400;
+      cb(err);
     }
   },
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
