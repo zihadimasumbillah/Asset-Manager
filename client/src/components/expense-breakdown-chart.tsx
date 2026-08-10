@@ -24,19 +24,28 @@ const COLORS = [
   "hsl(var(--primary))",
 ];
 
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.[0]) return null;
-  const entry = payload[0];
+interface CustomTooltipItem {
+  payload: ExpenseBreakdown;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: CustomTooltipItem[];
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (!active || !payload?.[0]?.payload) return null;
+  const item = payload[0].payload;
   return (
     <div className="rounded-md bg-popover border border-popover-border p-3 shadow-md text-sm">
-      <p className="font-medium">{entry.payload.category}</p>
+      <p className="font-medium">{item.category}</p>
       <div className="flex items-center justify-between gap-4 mt-1">
         <span className="text-muted-foreground">Amount</span>
-        <span className="font-medium">${entry.payload.amount?.toLocaleString()}</span>
+        <span className="font-medium">${item.amount.toLocaleString()}</span>
       </div>
       <div className="flex items-center justify-between gap-4">
         <span className="text-muted-foreground">Share</span>
-        <span className="font-medium">{entry.payload.percentage}%</span>
+        <span className="font-medium">{item.percentage}%</span>
       </div>
     </div>
   );

@@ -53,15 +53,16 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
       const res = await fetch("/api/upload-ledger", { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json();
+        const err = (await res.json()) as { message?: string };
         throw new Error(err.message || "Upload failed");
       }
-      const data = await res.json();
+      const data = (await res.json()) as { reportId: string };
       toast({ title: "Upload successful", description: "Your file is being processed by our AI engine." });
       onUploadSuccess(data.reportId);
       setFile(null);
-    } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Upload failed";
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
