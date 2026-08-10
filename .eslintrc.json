@@ -1,5 +1,6 @@
 {
   "root": true,
+  "ignorePatterns": ["financial-anomaly-dashboard/**", "dist/**", "coverage/**"],
   "env": {
     "es2022": true
   },
