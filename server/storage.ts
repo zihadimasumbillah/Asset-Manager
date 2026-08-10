@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 import { desc, eq } from "drizzle-orm";
 
 import {
@@ -21,13 +23,11 @@ export interface IStorage {
   getReport(id: string): Promise<FinancialReport | undefined>;
   getReportByFileName(fileName: string): Promise<FinancialReport | undefined>;
   getLatestReportByUser(userId: string): Promise<FinancialReport | undefined>;
-  // [FIX-H1] Pagination parameters prevent unbounded result sets
   getReportsByUser(userId: string, limit?: number, offset?: number): Promise<FinancialReport[]>;
   updateReportWithResults(
     reportId: string,
     data: N8nResponse
   ): Promise<FinancialReport | undefined>;
-  // [FIX-M3] status is now strongly typed via the ReportStatus union — no freeform strings
   updateReportStatus(reportId: string, status: ReportStatus): Promise<void>;
 }
 
@@ -78,8 +78,6 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  // [FIX-H1] Default limit of 50, capped in the route handler at 100.
-  // The composite index idx_reports_user_id_created_at makes this query efficient.
   async getReportsByUser(userId: string, limit = 50, offset = 0): Promise<FinancialReport[]> {
     return db
       .select()
@@ -109,10 +107,97 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // [FIX-M3] ReportStatus (union type from pgEnum) replaces the freeform `string` parameter
   async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
     await db.update(financialReports).set({ status }).where(eq(financialReports.id, reportId));
   }
 }
 
-export const storage = new DatabaseStorage();
+export class MemStorage implements IStorage {
+  private usersMap = new Map<string, User>();
+  private reportsMap = new Map<string, FinancialReport>();
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.usersMap.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.usersMap.values()).find((u) => u.username === username);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = crypto.randomUUID();
+    const user: User = { id, ...insertUser };
+    this.usersMap.set(id, user);
+    return user;
+  }
+
+  async createReport(report: InsertFinancialReport): Promise<FinancialReport> {
+    const id = crypto.randomUUID();
+    const newReport: FinancialReport = {
+      id,
+      userId: report.userId,
+      status: report.status ?? "processing",
+      fileName: report.fileName ?? null,
+      healthScore: report.healthScore ?? null,
+      anomalies: (report.anomalies as any) ?? null,
+      chartData: (report.chartData as any) ?? null,
+      expenseBreakdown: (report.expenseBreakdown as any) ?? null,
+      aiCommentary: report.aiCommentary ?? null,
+      createdAt: new Date(),
+    };
+    this.reportsMap.set(id, newReport);
+    return newReport;
+  }
+
+  async getReport(id: string): Promise<FinancialReport | undefined> {
+    return this.reportsMap.get(id);
+  }
+
+  async getReportByFileName(fileName: string): Promise<FinancialReport | undefined> {
+    return Array.from(this.reportsMap.values()).find((r) => r.fileName === fileName);
+  }
+
+  async getLatestReportByUser(userId: string): Promise<FinancialReport | undefined> {
+    const userReports = Array.from(this.reportsMap.values())
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+    return userReports[0];
+  }
+
+  async getReportsByUser(userId: string, limit = 50, offset = 0): Promise<FinancialReport[]> {
+    return Array.from(this.reportsMap.values())
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
+      .slice(offset, offset + limit);
+  }
+
+  async updateReportWithResults(
+    reportId: string,
+    data: N8nResponse
+  ): Promise<FinancialReport | undefined> {
+    const report = this.reportsMap.get(reportId);
+    if (!report) return undefined;
+    const updated: FinancialReport = {
+      ...report,
+      status: "completed",
+      healthScore: data.healthScore,
+      anomalies: data.anomalies as any,
+      chartData: data.chartData as any,
+      expenseBreakdown: data.expenseBreakdown as any,
+      aiCommentary: data.aiCommentary ?? null,
+    };
+    this.reportsMap.set(reportId, updated);
+    return updated;
+  }
+
+  async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
+    const report = this.reportsMap.get(reportId);
+    if (report) {
+      report.status = status;
+    }
+  }
+}
+
+export const storage: IStorage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();
