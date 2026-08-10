@@ -1,0 +1,213 @@
+# FinPulse — Financial Health Dashboard
+
+> AI-powered financial analysis platform. Upload a P&L ledger CSV, and FinPulse dispatches it to an n8n workflow for AI analysis — returning health scores, anomaly detection, revenue/expense charts, and natural-language commentary.
+
+[![CI](https://github.com/zihadimasumbillah/Asset-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/zihadimasumbillah/Asset-Manager/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+---
+
+## Table of Contents
+
+1. [Architecture](#architecture)
+2. [Prerequisites](#prerequisites)
+3. [Quick Start](#quick-start)
+4. [Environment Variables](#environment-variables)
+5. [npm Scripts](#npm-scripts)
+6. [Project Structure](#project-structure)
+7. [API Reference](#api-reference)
+8. [Deployment](#deployment)
+9. [Security](#security)
+10. [Contributing](#contributing)
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    User["👤 User (Browser)"]
+    Client["React Client\n(Vite + TanStack Query)"]
+    Server["Express Server\n(Node.js / TypeScript)"]
+    DB[("PostgreSQL\n(Drizzle ORM)")]
+    N8N["n8n Workflow\n(AI Analysis Engine)"]
+    Webhook["Webhook Endpoint\n/api/webhook/n8n-response"]
+
+    User -->|"Upload CSV"| Client
+    Client -->|"POST /api/upload-ledger"| Server
+    Server -->|"Store report (processing)"| DB
+    Server -->|"Dispatch with fileUrl"| N8N
+    N8N -->|"Fetch CSV"| Server
+    N8N -->|"POST results"| Webhook
+    Webhook -->|"Update report (completed)"| DB
+    Client -->|"Poll /api/reports/:id every 5s"| Server
+    Server -->|"Return completed report"| Client
+```
+
+**Tech stack:**
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite 7, TanStack Query, Recharts, framer-motion |
+| Backend | Express 5, Node.js 20, TypeScript |
+| Database | PostgreSQL 16, Drizzle ORM, Drizzle Kit |
+| Validation | Zod (shared between client and server) |
+| AI Pipeline | n8n (self-hosted or cloud) |
+| File Uploads | multer (local disk, 10 MB limit) |
+| Styling | Tailwind CSS v3, Radix UI, shadcn/ui |
+
+---
+
+## Prerequisites
+
+- **Node.js** ≥ 20 ([nvm](https://github.com/nvm-sh/nvm) recommended)
+- **PostgreSQL** ≥ 14 running locally or via a cloud provider
+- **n8n** instance (optional — skip for local development without AI processing)
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/zihadimasumbillah/Asset-Manager.git
+cd Asset-Manager
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env and fill in DATABASE_URL at minimum
+
+# 4. Push database schema
+npm run db:push
+
+# 5. Start development server
+npm run dev
+# → Opens at http://localhost:5000
+```
+
+The app seeds 4 regional demo reports on first start (US Tech, UK Retail, APAC Manufacturing, Great Lakes Hospitality).
+
+---
+
+## Environment Variables
+
+All variables are documented in [`.env.example`](./.env.example). Copy it to `.env` before starting.
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `PORT` | No (5000) | Server port |
+| `NODE_ENV` | No (development) | `development` \| `production` \| `test` |
+| `SERVER_BASE_URL` | ✅ in prod | Public base URL for file download links sent to n8n |
+| `SESSION_SECRET` | ✅ in prod | 64-char hex string for session signing |
+| `N8N_WEBHOOK_URL` | No | n8n workflow trigger URL |
+| `N8N_WEBHOOK_SECRET` | ✅ if n8n used | 32-char hex string for webhook signature verification |
+
+> **Never commit `.env`** — it is listed in `.gitignore`.
+
+---
+
+## npm Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Start development server (tsx, hot-reload) |
+| `npm run build` | Build production bundle (Vite + esbuild) |
+| `npm start` | Start production server (requires build first) |
+| `npm run check` | TypeScript type check |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint with auto-fix |
+| `npm run format` | Run Prettier (write) |
+| `npm run format:check` | Run Prettier (check only) |
+| `npm test` | Run Vitest (single run) |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run test:coverage` | Run tests with v8 coverage report |
+| `npm run db:push` | Push Drizzle schema to database |
+
+---
+
+## Project Structure
+
+```
+Asset-Manager/
+├── client/                  # React frontend (Vite)
+│   ├── index.html
+│   └── src/
+│       ├── App.tsx
+│       ├── components/      # UI components
+│       ├── hooks/           # Custom React hooks
+│       ├── lib/             # queryClient, utils
+│       └── pages/           # Route-level pages
+├── server/                  # Express backend
+│   ├── index.ts             # Server entry point
+│   ├── routes.ts            # API route definitions
+│   ├── storage.ts           # Database access layer (IStorage interface)
+│   ├── db.ts                # Drizzle + pg pool setup
+│   └── seed.ts              # Demo data seeding
+├── shared/                  # Code shared between client and server
+│   └── schema.ts            # Drizzle schema + Zod validators + TypeScript types
+├── tests/                   # Test setup and cross-layer tests
+├── .github/workflows/       # GitHub Actions CI/CD
+├── .env.example             # Environment variable template
+├── vercel.json              # Vercel deployment config
+├── vitest.config.ts         # Vitest test configuration
+└── drizzle.config.ts        # Drizzle Kit configuration
+```
+
+---
+
+## API Reference
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/upload-ledger` | Upload a CSV file and start AI processing |
+| `GET` | `/api/files/:filename` | Download an uploaded CSV file |
+| `POST` | `/api/webhook/n8n-response` | Receive AI analysis results from n8n |
+| `GET` | `/api/reports` | List all reports for a user |
+| `GET` | `/api/reports/latest` | Get the most recent report for a user |
+| `GET` | `/api/reports/:id` | Get a specific report by ID |
+
+Full request/response documentation: [`docs/architecture.md`](./docs/architecture.md)
+
+---
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Install Vercel CLI: `npm i -g vercel`
+2. Link project: `vercel link`
+3. Add environment variables in the Vercel dashboard (see [Environment Variables](#environment-variables))
+4. Deploy: push to `main` — GitHub Actions handles deployment automatically
+
+See [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) for the full pipeline.
+
+**Required GitHub Secrets:**
+
+| Secret | Where to get it |
+|---|---|
+| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
+| `VERCEL_ORG_ID` | `.vercel/project.json` after `vercel link` |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` after `vercel link` |
+
+---
+
+## Security
+
+> ⚠️ **Known Issues** — This application was built as a prototype. The following security issues are documented in [`code_review.md`](./code_review.md) and have not yet been remediated:
+>
+> - No authentication system (all endpoints are public)
+> - Path traversal vulnerability in `/api/files/:filename`
+> - Unauthenticated webhook endpoint
+> - No rate limiting or CORS policy
+>
+> **Do not run this in production with real financial data until these are fixed.**
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow, branch conventions, commit format, and PR guidelines.

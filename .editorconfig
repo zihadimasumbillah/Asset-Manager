@@ -1,0 +1,29 @@
+# EditorConfig — https://editorconfig.org
+# Ensures consistent coding style across all editors.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+# Trailing whitespace is meaningful in Markdown (line breaks)
+trim_trailing_whitespace = false
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[*.{ts,tsx,js,jsx,cjs,mjs}]
+indent_size = 2
+max_line_length = 100
