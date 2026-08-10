@@ -1,8 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Anomaly } from "@shared/schema";
 
 interface AnomalyFeedProps {
