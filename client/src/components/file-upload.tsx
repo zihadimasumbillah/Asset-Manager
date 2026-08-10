@@ -150,7 +150,9 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
             className="mt-4"
           >
             <Button
-              onClick={handleUpload}
+              onClick={() => {
+                void handleUpload();
+              }}
               disabled={isUploading}
               className="w-full"
               data-testid="button-upload-file"

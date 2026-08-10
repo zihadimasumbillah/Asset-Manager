@@ -17,12 +17,24 @@ interface RevenueExpensesChartProps {
   data: ChartDataPoint[] | null;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipPayloadEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload) return null;
   return (
     <div className="rounded-md bg-popover border border-popover-border p-3 shadow-md text-sm">
       <p className="font-medium mb-1.5">{label}</p>
-      {payload.map((entry: any) => (
+      {payload.map((entry) => (
         <div key={entry.name} className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-1.5">
             <div
@@ -32,7 +44,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <span className="text-muted-foreground">{entry.name}</span>
           </div>
           <span className="font-medium ml-4">
-            ${entry.value?.toLocaleString()}
+            ${entry.value.toLocaleString()}
           </span>
         </div>
       ))}
