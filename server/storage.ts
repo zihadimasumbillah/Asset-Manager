@@ -48,7 +48,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createReport(report: InsertFinancialReport): Promise<FinancialReport> {
-    const [created] = await db.insert(financialReports).values(report).returning();
+    const [created] = await db
+      .insert(financialReports)
+      .values(report as typeof financialReports.$inferInsert)
+      .returning();
     return created;
   }
 

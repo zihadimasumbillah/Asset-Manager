@@ -56,6 +56,7 @@ async function buildTestApp() {
     })
   );
   app.use(express.urlencoded({ extended: false }));
+  const httpServer = createServer(app);
   registerRoutes(httpServer, app);
   return { app, httpServer };
 }
