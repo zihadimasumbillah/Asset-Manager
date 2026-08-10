@@ -9,7 +9,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { HealthScoreCard } from "../../client/src/components/health-score-card";
+import { HealthScoreCard } from "@/components/health-score-card";
 
 // Silence framer-motion animation warnings in jsdom — motion components are not
 // testable in a jsdom environment and are irrelevant to the component's logic.
