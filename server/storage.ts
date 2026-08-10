@@ -13,7 +13,7 @@ import {
   users,
 } from "@shared/schema";
 
-import { db } from "./db";
+import { db } from "./db.js";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
