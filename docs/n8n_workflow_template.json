@@ -1,0 +1,73 @@
+{
+  "name": "FinPulse AI Financial Analysis Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finpulse-ledger",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.fileUrl }}",
+        "options": {}
+      },
+      "name": "Download CSV File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/api/webhook/n8n-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"reportId\": \"{{ $node['Webhook Trigger'].json.body.reportId }}\",\n  \"healthScore\": 85,\n  \"anomalies\": [],\n  \"chartData\": [],\n  \"expenseBreakdown\": [],\n  \"aiCommentary\": \"AI analysis completed successfully.\"\n}",
+        "options": {}
+      },
+      "name": "Send Response to FinPulse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download CSV File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download CSV File": {
+      "main": [
+        [
+          {
+            "node": "Send Response to FinPulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
