@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HeartPulse } from "lucide-react";
 import { motion } from "framer-motion";
+import { HeartPulse } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface HealthScoreCardProps {
   score: number | null;

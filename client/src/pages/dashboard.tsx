@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { FinancialReport } from "@shared/schema";
+import { Activity, TrendingUp, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+
+import { AiCommentary } from "@/components/ai-commentary";
+import { AnomalyFeed } from "@/components/anomaly-feed";
+import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { FileUpload } from "@/components/file-upload";
 import { HealthScoreCard } from "@/components/health-score-card";
-import { RevenueExpensesChart } from "@/components/revenue-expenses-chart";
-import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
-import { AnomalyFeed } from "@/components/anomaly-feed";
-import { AiCommentary } from "@/components/ai-commentary";
-import { ReportHistory } from "@/components/report-history";
 import { ProcessingOverlay } from "@/components/processing-overlay";
-import { Activity, TrendingUp, Shield } from "lucide-react";
+import { ReportHistory } from "@/components/report-history";
+import { RevenueExpensesChart } from "@/components/revenue-expenses-chart";
+import type { FinancialReport } from "@shared/schema";
+
 
 export default function Dashboard() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);

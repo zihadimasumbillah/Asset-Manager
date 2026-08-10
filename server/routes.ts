@@ -1,17 +1,18 @@
 import crypto from "crypto";
 import fs from "fs";
+import type { Server } from "http";
+import { createServer } from "http";
 import path from "path";
 
 import type { Express } from "express";
 import rateLimit from "express-rate-limit";
-import type { Server } from "http";
-import { createServer } from "http";
 import multer from "multer";
 
 import { n8nResponseSchema } from "@shared/schema";
+
 import { verifyN8nSignature } from "./middleware/verifyN8nSignature";
-import { toClientError } from "./utils/errors";
 import { storage } from "./storage";
+import { toClientError } from "./utils/errors";
 
 // ── Upload directory ──────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ const DEFAULT_USER_ID = "demo-user";
 
 // ── Route registration ────────────────────────────────────────────────────────
 
-export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+export function registerRoutes(httpServer: Server, app: Express): Server {
   // Apply general API rate limiting to all /api/ endpoints
   app.use("/api", apiLimiter);
 

@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+
 import {
   n8nResponseSchema,
   anomalySchema,
@@ -110,7 +111,7 @@ describe("n8nResponseSchema", () => {
   });
 
   it("accepts missing optional aiCommentary", () => {
-    const { aiCommentary: _, ...withoutCommentary } = validPayload;
+    const withoutCommentary = { ...validPayload, aiCommentary: undefined };
     const result = n8nResponseSchema.safeParse(withoutCommentary);
     expect(result.success).toBe(true);
   });
@@ -126,7 +127,7 @@ describe("n8nResponseSchema", () => {
   });
 
   it("rejects missing reportId", () => {
-    const { reportId: _, ...withoutId } = validPayload;
+    const { reportId: _id, ...withoutId } = validPayload;
     const result = n8nResponseSchema.safeParse(withoutId);
     expect(result.success).toBe(false);
   });

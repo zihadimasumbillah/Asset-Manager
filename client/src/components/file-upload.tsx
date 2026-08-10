@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, X, CheckCircle2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { Upload, FileSpreadsheet, X, CheckCircle2 } from "lucide-react";
+import { useState, useCallback } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface FileUploadProps {
   onUploadSuccess: (reportId: string) => void;

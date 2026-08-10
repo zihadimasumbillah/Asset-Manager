@@ -6,8 +6,8 @@
  */
 
 // [FIX-T2] Explicit imports — never rely on globals: true as an implicit dependency
-import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { HealthScoreCard } from "@/components/health-score-card";
 

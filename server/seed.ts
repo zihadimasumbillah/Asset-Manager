@@ -1,5 +1,4 @@
 import { storage } from "./storage";
-import type { Anomaly, ChartDataPoint, ExpenseBreakdown } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
 

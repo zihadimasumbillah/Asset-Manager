@@ -10,6 +10,7 @@ import {
   financialReports,
   users,
 } from "@shared/schema";
+
 import { db } from "./db";
 
 export interface IStorage {
@@ -47,8 +48,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createReport(report: InsertFinancialReport): Promise<FinancialReport> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [created] = await db.insert(financialReports).values(report as any).returning();
+    const [created] = await db.insert(financialReports).values(report).returning();
     return created;
   }
 

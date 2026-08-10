@@ -2,9 +2,9 @@ import { createServer } from "http";
 
 import express, { type NextFunction, type Request, type Response } from "express";
 
+import { registerRoutes } from "./routes";
 import { seedDatabase } from "./seed";
 import { serveStatic } from "./static";
-import { registerRoutes } from "./routes";
 
 const app = express();
 const httpServer = createServer(app);
@@ -70,7 +70,7 @@ app.use((req, res, next) => {
 });
 
 void (async () => {
-  await registerRoutes(httpServer, app);
+  registerRoutes(httpServer, app);
 
   // [FIX-H3] Only seed demo data in non-production environments.
   // Seeding in production adds latency to every cold start and risks polluting real data.

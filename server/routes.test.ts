@@ -9,11 +9,12 @@
  */
 
 import crypto from "crypto";
+import { createServer } from "http";
 
-import { beforeEach, describe, expect, it, vi } from "vitest"; // [FIX-T1] explicit vi import
 import express from "express";
 import request from "supertest";
-import { createServer } from "http";
+import { beforeEach, describe, expect, it, vi } from "vitest"; // [FIX-T1] explicit vi import
+
 
 // [FIX-T1] Correct relative path — this file lives in server/, so storage is a sibling
 vi.mock("./storage", () => ({
@@ -28,8 +29,8 @@ vi.mock("./storage", () => ({
 }));
 
 // Import after mock is set up
-import { storage } from "./storage";
 import { registerRoutes } from "./routes";
+import { storage } from "./storage";
 
 const mockedStorage = vi.mocked(storage);
 
@@ -55,8 +56,7 @@ async function buildTestApp() {
     })
   );
   app.use(express.urlencoded({ extended: false }));
-  const httpServer = createServer(app);
-  await registerRoutes(httpServer, app);
+  registerRoutes(httpServer, app);
   return { app, httpServer };
 }
 
