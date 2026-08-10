@@ -38,17 +38,18 @@ Git hooks are installed automatically on `npm install` via Husky. You'll get:
 
 Use the following prefixes:
 
-| Prefix | Use for |
-|---|---|
-| `feat/` | New features |
-| `fix/` | Bug fixes |
-| `chore/` | Maintenance, dependencies, tooling |
-| `docs/` | Documentation only |
+| Prefix      | Use for                                |
+| ----------- | -------------------------------------- |
+| `feat/`     | New features                           |
+| `fix/`      | Bug fixes                              |
+| `chore/`    | Maintenance, dependencies, tooling     |
+| `docs/`     | Documentation only                     |
 | `refactor/` | Code restructuring (no feature or fix) |
-| `test/` | Adding or improving tests |
-| `ci/` | CI/CD pipeline changes |
+| `test/`     | Adding or improving tests              |
+| `ci/`       | CI/CD pipeline changes                 |
 
 **Examples:**
+
 ```
 feat/add-auth-middleware
 fix/path-traversal-in-file-endpoint
@@ -76,19 +77,19 @@ This project enforces [Conventional Commits](https://www.conventionalcommits.org
 
 ### Types
 
-| Type | Description |
-|---|---|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `chore` | Maintenance (deps, config, tooling) |
-| `docs` | Documentation only |
-| `style` | Formatting — no logic change |
+| Type       | Description                            |
+| ---------- | -------------------------------------- |
+| `feat`     | New feature                            |
+| `fix`      | Bug fix                                |
+| `chore`    | Maintenance (deps, config, tooling)    |
+| `docs`     | Documentation only                     |
+| `style`    | Formatting — no logic change           |
 | `refactor` | Code restructuring — no feature or fix |
-| `perf` | Performance improvement |
-| `test` | Adding or fixing tests |
-| `ci` | CI/CD pipeline changes |
-| `build` | Build system changes |
-| `revert` | Reverts a previous commit |
+| `perf`     | Performance improvement                |
+| `test`     | Adding or fixing tests                 |
+| `ci`       | CI/CD pipeline changes                 |
+| `build`    | Build system changes                   |
+| `revert`   | Reverts a previous commit              |
 
 ### Rules
 
@@ -203,17 +204,17 @@ catch (error: any) {
 3. Set **Branch name pattern**: `main`
 4. Enable the following:
 
-| Setting | Value |
-|---|---|
-| Require a pull request before merging | ✅ Enabled |
-| Require approvals | 1 |
-| Dismiss stale reviews when new commits are pushed | ✅ Enabled |
-| Require status checks to pass before merging | ✅ Enabled |
-| Required status checks | `Lint & Format`, `TypeScript`, `Tests`, `Build` |
-| Require branches to be up to date before merging | ✅ Enabled |
-| Do not allow bypassing the above settings | ✅ Enabled |
-| Allow force pushes | ❌ Disabled |
-| Allow deletions | ❌ Disabled |
+| Setting                                           | Value                                           |
+| ------------------------------------------------- | ----------------------------------------------- |
+| Require a pull request before merging             | ✅ Enabled                                      |
+| Require approvals                                 | 1                                               |
+| Dismiss stale reviews when new commits are pushed | ✅ Enabled                                      |
+| Require status checks to pass before merging      | ✅ Enabled                                      |
+| Required status checks                            | `Lint & Format`, `TypeScript`, `Tests`, `Build` |
+| Require branches to be up to date before merging  | ✅ Enabled                                      |
+| Do not allow bypassing the above settings         | ✅ Enabled                                      |
+| Allow force pushes                                | ❌ Disabled                                     |
+| Allow deletions                                   | ❌ Disabled                                     |
 
 5. Click **Create**
 

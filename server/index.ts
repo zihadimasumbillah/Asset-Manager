@@ -100,9 +100,7 @@ void (async () => {
     // Everything else is a generic 500
     const isKnownClientError = status >= 400 && status < 500;
     const message =
-      isKnownClientError && err instanceof Error
-        ? err.message
-        : "An unexpected error occurred.";
+      isKnownClientError && err instanceof Error ? err.message : "An unexpected error occurred.";
 
     return res.status(status).json({ message });
   });

@@ -55,12 +55,8 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-
   async getReport(id: string): Promise<FinancialReport | undefined> {
-    const [report] = await db
-      .select()
-      .from(financialReports)
-      .where(eq(financialReports.id, id));
+    const [report] = await db.select().from(financialReports).where(eq(financialReports.id, id));
     return report;
   }
 
@@ -84,11 +80,7 @@ export class DatabaseStorage implements IStorage {
 
   // [FIX-H1] Default limit of 50, capped in the route handler at 100.
   // The composite index idx_reports_user_id_created_at makes this query efficient.
-  async getReportsByUser(
-    userId: string,
-    limit = 50,
-    offset = 0
-  ): Promise<FinancialReport[]> {
+  async getReportsByUser(userId: string, limit = 50, offset = 0): Promise<FinancialReport[]> {
     return db
       .select()
       .from(financialReports)
@@ -119,10 +111,7 @@ export class DatabaseStorage implements IStorage {
 
   // [FIX-M3] ReportStatus (union type from pgEnum) replaces the freeform `string` parameter
   async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
-    await db
-      .update(financialReports)
-      .set({ status })
-      .where(eq(financialReports.id, reportId));
+    await db.update(financialReports).set({ status }).where(eq(financialReports.id, reportId));
   }
 }
 

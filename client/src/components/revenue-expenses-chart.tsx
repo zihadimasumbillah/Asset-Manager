@@ -37,15 +37,10 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-muted-foreground">{entry.name}</span>
           </div>
-          <span className="font-medium ml-4">
-            ${entry.value.toLocaleString()}
-          </span>
+          <span className="font-medium ml-4">${entry.value.toLocaleString()}</span>
         </div>
       ))}
     </div>

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-
 interface FileUploadProps {
   onUploadSuccess: (reportId: string) => void;
 }
@@ -27,16 +26,23 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped && (dropped.type === "text/csv" || dropped.name.endsWith(".csv"))) {
-      setFile(dropped);
-    } else {
-      toast({ title: "Invalid file", description: "Please upload a CSV file", variant: "destructive" });
-    }
-  }, [toast]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const dropped = e.dataTransfer.files[0];
+      if (dropped && (dropped.type === "text/csv" || dropped.name.endsWith(".csv"))) {
+        setFile(dropped);
+      } else {
+        toast({
+          title: "Invalid file",
+          description: "Please upload a CSV file",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -57,7 +63,10 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         throw new Error(err.message || "Upload failed");
       }
       const data = (await res.json()) as { reportId: string };
-      toast({ title: "Upload successful", description: "Your file is being processed by our AI engine." });
+      toast({
+        title: "Upload successful",
+        description: "Your file is being processed by our AI engine.",
+      });
       onUploadSuccess(data.reportId);
       setFile(null);
     } catch (error: unknown) {
@@ -80,9 +89,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
         <div
           data-testid="dropzone-file-upload"
           className={`relative border-2 border-dashed rounded-md p-6 text-center transition-colors cursor-pointer ${
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/20"
+            isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -109,14 +116,18 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
                 <div className="w-10 h-10 rounded-md bg-chart-2/10 flex items-center justify-center">
                   <FileSpreadsheet className="w-5 h-5 text-chart-2" />
                 </div>
-                <p className="text-sm font-medium truncate max-w-full" data-testid="text-selected-filename">
+                <p
+                  className="text-sm font-medium truncate max-w-full"
+                  data-testid="text-selected-filename"
+                >
                   {file.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {(file.size / 1024).toFixed(1)} KB
-                </p>
+                <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFile(null);
+                  }}
                   className="absolute top-2 right-2 p-1 rounded-sm text-muted-foreground"
                   data-testid="button-clear-file"
                 >

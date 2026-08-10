@@ -38,8 +38,7 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     // [FIX-HIGH] Require BOTH mimetype AND extension to match (AND, not OR).
     // An attacker cannot bypass this by renaming a file to ".csv".
-    const isCSV =
-      file.mimetype === "text/csv" && file.originalname.toLowerCase().endsWith(".csv");
+    const isCSV = file.mimetype === "text/csv" && file.originalname.toLowerCase().endsWith(".csv");
     if (isCSV) {
       cb(null, true);
     } else {
@@ -56,7 +55,7 @@ const upload = multer({
 // [FIX-C5] Prevent disk-exhaustion DoS via unbounded upload requests.
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15-minute window
-  max: 10,                   // max 10 uploads per IP per window
+  max: 10, // max 10 uploads per IP per window
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many upload requests. Please try again later." },

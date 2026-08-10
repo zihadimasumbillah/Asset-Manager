@@ -39,10 +39,7 @@ export function verifyN8nSignature(req: Request, res: Response, next: NextFuncti
   }
 
   const rawSignature = signatureHeader.replace(/^sha256=/, "").trim();
-  const computedDigest = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex");
+  const computedDigest = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
 
   // timingSafeEqual prevents timing-based attacks that compare byte-by-byte
   try {

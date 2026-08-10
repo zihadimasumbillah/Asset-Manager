@@ -15,7 +15,9 @@ import { z } from "zod";
 // ── Users ────────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
@@ -31,11 +33,7 @@ export type User = typeof users.$inferSelect;
 // ── Report status enum ────────────────────────────────────────────────────────
 // Using a pgEnum enforces the allowed values at the DB level, not just the app level.
 
-export const reportStatusEnum = pgEnum("report_status", [
-  "processing",
-  "completed",
-  "failed",
-]);
+export const reportStatusEnum = pgEnum("report_status", ["processing", "completed", "failed"]);
 
 export type ReportStatus = (typeof reportStatusEnum.enumValues)[number];
 
@@ -70,7 +68,9 @@ export type ExpenseBreakdown = z.infer<typeof expenseBreakdownSchema>;
 export const financialReports = pgTable(
   "financial_reports",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     userId: varchar("user_id").notNull(),
     status: reportStatusEnum("status").notNull().default("processing"),
     healthScore: integer("health_score"),

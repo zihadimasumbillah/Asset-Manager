@@ -18,11 +18,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
 
     // ── Test file patterns ───────────────────────────────────
-    include: [
-      "server/**/*.test.ts",
-      "shared/**/*.test.ts",
-      "client/src/**/*.test.{ts,tsx}",
-    ],
+    include: ["server/**/*.test.ts", "shared/**/*.test.ts", "client/src/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", "dist", "coverage"],
 
     // ── Coverage ─────────────────────────────────────────────

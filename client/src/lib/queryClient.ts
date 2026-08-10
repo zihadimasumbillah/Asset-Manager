@@ -7,11 +7,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown
-): Promise<Response> {
+export async function apiRequest(method: string, url: string, data?: unknown): Promise<Response> {
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -25,9 +21,7 @@ export async function apiRequest(
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     // [FIX-M2] The URL is always the first element of the queryKey.
@@ -53,7 +47,6 @@ export const getQueryFn: <T>(options: {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await res.json();
   };
-
 
 export const queryClient = new QueryClient({
   defaultOptions: {

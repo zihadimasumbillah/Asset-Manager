@@ -15,7 +15,6 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest"; // [FIX-T1] explicit vi import
 
-
 // [FIX-T1] Correct relative path — this file lives in server/, so storage is a sibling
 vi.mock("./storage", () => ({
   storage: {
@@ -208,9 +207,7 @@ describe("POST /api/webhook/n8n-response", () => {
 
   it("returns 401 when x-n8n-signature header is missing", async () => {
     const { app } = await buildTestApp();
-    const res = await request(app)
-      .post("/api/webhook/n8n-response")
-      .send(validWebhookPayload); // no signature header
+    const res = await request(app).post("/api/webhook/n8n-response").send(validWebhookPayload); // no signature header
 
     expect(res.status).toBe(401);
   });

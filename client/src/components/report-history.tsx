@@ -41,9 +41,7 @@ export function ReportHistory({ reports, activeReportId, onSelectReport }: Repor
                   key={report.id}
                   onClick={() => onSelectReport(report.id)}
                   className={`w-full text-left rounded-md p-3 transition-colors hover-elevate ${
-                    activeReportId === report.id
-                      ? "bg-primary/10"
-                      : "bg-muted/40"
+                    activeReportId === report.id ? "bg-primary/10" : "bg-muted/40"
                   }`}
                   data-testid={`button-report-${report.id}`}
                 >

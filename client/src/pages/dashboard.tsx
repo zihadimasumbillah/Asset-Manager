@@ -12,7 +12,6 @@ import { ReportHistory } from "@/components/report-history";
 import { RevenueExpensesChart } from "@/components/revenue-expenses-chart";
 import type { FinancialReport } from "@shared/schema";
 
-
 export default function Dashboard() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);

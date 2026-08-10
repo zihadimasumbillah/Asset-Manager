@@ -1,5 +1,12 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "tests/**/*", "script/**/*", "*.config.ts"],
+  "include": [
+    "client/src/**/*",
+    "shared/**/*",
+    "server/**/*",
+    "tests/**/*",
+    "script/**/*",
+    "*.config.ts"
+  ],
   "exclude": ["node_modules", "build", "dist", "financial-anomaly-dashboard"],
   "compilerOptions": {
     "incremental": true,

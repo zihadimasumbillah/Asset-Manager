@@ -25,22 +25,26 @@ const regionalReports = [
     anomalies: [
       {
         severity: "High" as const,
-        description: "COGS spiked 57% in October ($5,170) vs trailing 3-month average ($2,803) — likely a one-time infrastructure purchase not amortized properly",
+        description:
+          "COGS spiked 57% in October ($5,170) vs trailing 3-month average ($2,803) — likely a one-time infrastructure purchase not amortized properly",
         variance: 57,
       },
       {
         severity: "Medium" as const,
-        description: "Revenue dipped 5.7% in July ($187K vs $199K in June) — consistent with industry-wide Q3 SaaS slowdown reported across Far West region",
+        description:
+          "Revenue dipped 5.7% in July ($187K vs $199K in June) — consistent with industry-wide Q3 SaaS slowdown reported across Far West region",
         variance: -5.7,
       },
       {
         severity: "Low" as const,
-        description: "Travel expenses increasing at 4.2% month-over-month since August — above the 2.1% industry average for tech startups in the region",
+        description:
+          "Travel expenses increasing at 4.2% month-over-month since August — above the 2.1% industry average for tech startups in the region",
         variance: 4.2,
       },
       {
         severity: "Medium" as const,
-        description: "Marketing spend as a percentage of revenue dropped from 12% to 11.5% in Q4 despite accelerating growth — potential under-investment risk",
+        description:
+          "Marketing spend as a percentage of revenue dropped from 12% to 11.5% in Q4 despite accelerating growth — potential under-investment risk",
         variance: -4.2,
       },
     ],
@@ -77,22 +81,26 @@ const regionalReports = [
     anomalies: [
       {
         severity: "High" as const,
-        description: "Revenue dropped 5% in August ($106.8K vs $112.4K) — correlates with post-summer UK retail slump, but decline is 2x the sector average of 2.5%",
+        description:
+          "Revenue dropped 5% in August ($106.8K vs $112.4K) — correlates with post-summer UK retail slump, but decline is 2x the sector average of 2.5%",
         variance: -5.0,
       },
       {
         severity: "High" as const,
-        description: "Q4 revenue concentration risk — Nov-Dec accounts for 22% of annual revenue, creating severe cash flow dependency on holiday season",
+        description:
+          "Q4 revenue concentration risk — Nov-Dec accounts for 22% of annual revenue, creating severe cash flow dependency on holiday season",
         variance: 22,
       },
       {
         severity: "Medium" as const,
-        description: "COGS percentage increased from 9.1% to 9.8% between Q3 and Q4 — supplier cost inflation above the 0.3% European wholesale average",
+        description:
+          "COGS percentage increased from 9.1% to 9.8% between Q3 and Q4 — supplier cost inflation above the 0.3% European wholesale average",
         variance: 7.7,
       },
       {
         severity: "Low" as const,
-        description: "Technology spend at 5% of expenses is below European SMB average of 8% — potential under-investment in digital transformation",
+        description:
+          "Technology spend at 5% of expenses is below European SMB average of 8% — potential under-investment in digital transformation",
         variance: -37.5,
       },
     ],
@@ -129,27 +137,32 @@ const regionalReports = [
     anomalies: [
       {
         severity: "High" as const,
-        description: "April revenue dropped 6.5% ($318.9K vs $341.2K March) — exceeds the typical 3% Lunar New Year production slowdown, indicating potential supply chain disruption",
+        description:
+          "April revenue dropped 6.5% ($318.9K vs $341.2K March) — exceeds the typical 3% Lunar New Year production slowdown, indicating potential supply chain disruption",
         variance: -6.5,
       },
       {
         severity: "High" as const,
-        description: "COGS volatility — ranged from $74.7K to $94.8K (27% swing) indicating raw material price instability across APAC commodity markets in 2024",
+        description:
+          "COGS volatility — ranged from $74.7K to $94.8K (27% swing) indicating raw material price instability across APAC commodity markets in 2024",
         variance: 27,
       },
       {
         severity: "Medium" as const,
-        description: "Operations costs at 18% of total expenses — 3 percentage points above APAC manufacturing benchmark of 15%, suggesting logistics inefficiencies",
+        description:
+          "Operations costs at 18% of total expenses — 3 percentage points above APAC manufacturing benchmark of 15%, suggesting logistics inefficiencies",
         variance: 20,
       },
       {
         severity: "Low" as const,
-        description: "Technology investment at 3.4% is below the 53% cloud adoption rate target recommended for APAC SMBs by 2024 analyst reports",
+        description:
+          "Technology investment at 3.4% is below the 53% cloud adoption rate target recommended for APAC SMBs by 2024 analyst reports",
         variance: -36,
       },
       {
         severity: "Medium" as const,
-        description: "July production dip (-6.1%) correlates with monsoon season disruptions affecting 34% of APAC supply chains per 2024 industry data",
+        description:
+          "July production dip (-6.1%) correlates with monsoon season disruptions affecting 34% of APAC supply chains per 2024 industry data",
         variance: -6.1,
       },
     ],
@@ -186,27 +199,32 @@ const regionalReports = [
     anomalies: [
       {
         severity: "High" as const,
-        description: "February revenue hit annual low at $58.9K — 49% below July peak, with net margin compressing to 2.4% (critically below the 7% healthy threshold per 2024 SMB benchmarks)",
+        description:
+          "February revenue hit annual low at $58.9K — 49% below July peak, with net margin compressing to 2.4% (critically below the 7% healthy threshold per 2024 SMB benchmarks)",
         variance: -49,
       },
       {
         severity: "High" as const,
-        description: "Payroll costs remained at 53% of expenses year-round despite 85% revenue seasonality — indicates inability to flex staffing, costing an estimated $18K in avoidable winter labor",
+        description:
+          "Payroll costs remained at 53% of expenses year-round despite 85% revenue seasonality — indicates inability to flex staffing, costing an estimated $18K in avoidable winter labor",
         variance: 53,
       },
       {
         severity: "Medium" as const,
-        description: "COGS peaked in August ($7,730) at 139% above February levels ($2,952) — inventory purchasing not aligned with declining post-peak demand curve",
+        description:
+          "COGS peaked in August ($7,730) at 139% above February levels ($2,952) — inventory purchasing not aligned with declining post-peak demand curve",
         variance: 139,
       },
       {
         severity: "Medium" as const,
-        description: "Insurance costs at 4% of expenses are above the hospitality industry average of 3.1% — potential for savings through group purchasing or policy renegotiation",
+        description:
+          "Insurance costs at 4% of expenses are above the hospitality industry average of 3.1% — potential for savings through group purchasing or policy renegotiation",
         variance: 29,
       },
       {
         severity: "Low" as const,
-        description: "Marketing spend at 6% is flat across all months — missing opportunity to increase winter marketing to combat seasonal revenue decline",
+        description:
+          "Marketing spend at 6% is flat across all months — missing opportunity to increase winter marketing to combat seasonal revenue decline",
         variance: 0,
       },
     ],

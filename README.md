@@ -46,15 +46,15 @@ graph TD
 
 **Tech stack:**
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Vite 7, TanStack Query, Recharts, framer-motion |
-| Backend | Express 5, Node.js 20, TypeScript |
-| Database | PostgreSQL 16, Drizzle ORM, Drizzle Kit |
-| Validation | Zod (shared between client and server) |
-| AI Pipeline | n8n (self-hosted or cloud) |
-| File Uploads | multer (local disk, 10 MB limit) |
-| Styling | Tailwind CSS v3, Radix UI, shadcn/ui |
+| Layer        | Technology                                                |
+| ------------ | --------------------------------------------------------- |
+| Frontend     | React 18, Vite 7, TanStack Query, Recharts, framer-motion |
+| Backend      | Express 5, Node.js 20, TypeScript                         |
+| Database     | PostgreSQL 16, Drizzle ORM, Drizzle Kit                   |
+| Validation   | Zod (shared between client and server)                    |
+| AI Pipeline  | n8n (self-hosted or cloud)                                |
+| File Uploads | multer (local disk, 10 MB limit)                          |
+| Styling      | Tailwind CSS v3, Radix UI, shadcn/ui                      |
 
 ---
 
@@ -96,15 +96,15 @@ The app seeds 4 regional demo reports on first start (US Tech, UK Retail, APAC M
 
 All variables are documented in [`.env.example`](./.env.example). Copy it to `.env` before starting.
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `PORT` | No (5000) | Server port |
-| `NODE_ENV` | No (development) | `development` \| `production` \| `test` |
-| `SERVER_BASE_URL` | ✅ in prod | Public base URL for file download links sent to n8n |
-| `SESSION_SECRET` | ✅ in prod | 64-char hex string for session signing |
-| `N8N_WEBHOOK_URL` | No | n8n workflow trigger URL |
-| `N8N_WEBHOOK_SECRET` | ✅ if n8n used | 32-char hex string for webhook signature verification |
+| Variable             | Required         | Description                                           |
+| -------------------- | ---------------- | ----------------------------------------------------- |
+| `DATABASE_URL`       | ✅               | PostgreSQL connection string                          |
+| `PORT`               | No (5000)        | Server port                                           |
+| `NODE_ENV`           | No (development) | `development` \| `production` \| `test`               |
+| `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n   |
+| `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                |
+| `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                              |
+| `N8N_WEBHOOK_SECRET` | ✅ if n8n used   | 32-char hex string for webhook signature verification |
 
 > **Never commit `.env`** — it is listed in `.gitignore`.
 
@@ -112,20 +112,20 @@ All variables are documented in [`.env.example`](./.env.example). Copy it to `.e
 
 ## npm Scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Start development server (tsx, hot-reload) |
-| `npm run build` | Build production bundle (Vite + esbuild) |
-| `npm start` | Start production server (requires build first) |
-| `npm run check` | TypeScript type check |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Run ESLint with auto-fix |
-| `npm run format` | Run Prettier (write) |
-| `npm run format:check` | Run Prettier (check only) |
-| `npm test` | Run Vitest (single run) |
-| `npm run test:watch` | Run Vitest in watch mode |
-| `npm run test:coverage` | Run tests with v8 coverage report |
-| `npm run db:push` | Push Drizzle schema to database |
+| Script                  | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `npm run dev`           | Start development server (tsx, hot-reload)     |
+| `npm run build`         | Build production bundle (Vite + esbuild)       |
+| `npm start`             | Start production server (requires build first) |
+| `npm run check`         | TypeScript type check                          |
+| `npm run lint`          | Run ESLint                                     |
+| `npm run lint:fix`      | Run ESLint with auto-fix                       |
+| `npm run format`        | Run Prettier (write)                           |
+| `npm run format:check`  | Run Prettier (check only)                      |
+| `npm test`              | Run Vitest (single run)                        |
+| `npm run test:watch`    | Run Vitest in watch mode                       |
+| `npm run test:coverage` | Run tests with v8 coverage report              |
+| `npm run db:push`       | Push Drizzle schema to database                |
 
 ---
 
@@ -161,14 +161,14 @@ Asset-Manager/
 
 ## API Reference
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/upload-ledger` | Upload a CSV file and start AI processing |
-| `GET` | `/api/files/:filename` | Download an uploaded CSV file |
-| `POST` | `/api/webhook/n8n-response` | Receive AI analysis results from n8n |
-| `GET` | `/api/reports` | List all reports for a user |
-| `GET` | `/api/reports/latest` | Get the most recent report for a user |
-| `GET` | `/api/reports/:id` | Get a specific report by ID |
+| Method | Path                        | Description                               |
+| ------ | --------------------------- | ----------------------------------------- |
+| `POST` | `/api/upload-ledger`        | Upload a CSV file and start AI processing |
+| `GET`  | `/api/files/:filename`      | Download an uploaded CSV file             |
+| `POST` | `/api/webhook/n8n-response` | Receive AI analysis results from n8n      |
+| `GET`  | `/api/reports`              | List all reports for a user               |
+| `GET`  | `/api/reports/latest`       | Get the most recent report for a user     |
+| `GET`  | `/api/reports/:id`          | Get a specific report by ID               |
 
 Full request/response documentation: [`docs/architecture.md`](./docs/architecture.md)
 
@@ -187,10 +187,10 @@ See [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) for the ful
 
 **Required GitHub Secrets:**
 
-| Secret | Where to get it |
-|---|---|
-| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
-| `VERCEL_ORG_ID` | `.vercel/project.json` after `vercel link` |
+| Secret              | Where to get it                            |
+| ------------------- | ------------------------------------------ |
+| `VERCEL_TOKEN`      | Vercel → Account Settings → Tokens         |
+| `VERCEL_ORG_ID`     | `.vercel/project.json` after `vercel link` |
 | `VERCEL_PROJECT_ID` | `.vercel/project.json` after `vercel link` |
 
 ---

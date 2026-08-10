@@ -46,7 +46,10 @@ export function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
                   data-testid={`card-anomaly-${index}`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <Badge variant={getSeverityVariant(anomaly.severity)} data-testid={`badge-severity-${index}`}>
+                    <Badge
+                      variant={getSeverityVariant(anomaly.severity)}
+                      data-testid={`badge-severity-${index}`}
+                    >
                       {anomaly.severity}
                     </Badge>
                     <div className="flex items-center gap-1 text-xs font-medium shrink-0">
@@ -64,7 +67,10 @@ export function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed" data-testid={`text-anomaly-desc-${index}`}>
+                  <p
+                    className="text-xs text-muted-foreground leading-relaxed"
+                    data-testid={`text-anomaly-desc-${index}`}
+                  >
                     {anomaly.description}
                   </p>
                 </motion.div>

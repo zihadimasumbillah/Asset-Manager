@@ -17,17 +17,17 @@ module.exports = {
       2,
       "always",
       [
-        "feat",     // New feature
-        "fix",      // Bug fix
-        "chore",    // Maintenance (deps, tooling)
-        "docs",     // Documentation only
-        "style",    // Formatting (no logic change)
+        "feat", // New feature
+        "fix", // Bug fix
+        "chore", // Maintenance (deps, tooling)
+        "docs", // Documentation only
+        "style", // Formatting (no logic change)
         "refactor", // Code restructuring (no feature/fix)
-        "perf",     // Performance improvement
-        "test",     // Adding or fixing tests
-        "ci",       // CI/CD pipeline changes
-        "build",    // Build system or external deps
-        "revert",   // Reverts a previous commit
+        "perf", // Performance improvement
+        "test", // Adding or fixing tests
+        "ci", // CI/CD pipeline changes
+        "build", // Build system or external deps
+        "revert", // Reverts a previous commit
       ],
     ],
     // Enforce non-empty scope
