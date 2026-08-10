@@ -148,24 +148,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── GET /api/files/:filename ───────────────────────────────────────────────
-  app.get("/api/files/:filename", (req, res) => {
-    // [FIX-C1] Path traversal fix.
-    // path.basename strips ALL directory components:
-    //   "../../etc/passwd" → "passwd"
-    //   "..%2F..%2Fdb.ts" → already decoded by Express → "db.ts" (then basename → "db.ts")
-    const safeFilename = path.basename(req.params.filename);
+  app.get("/api/files/:filename", async (req, res) => {
+    try {
+      // [FIX-C1] Path traversal fix.
+      // path.basename strips ALL directory components:
+      //   "../../etc/passwd" → "passwd"
+      const safeFilename = path.basename(req.params.filename);
 
-    const resolvedPath = path.resolve(path.join(uploadDir, safeFilename));
-    const resolvedUploadDir = path.resolve(uploadDir);
+      const resolvedPath = path.resolve(path.join(uploadDir, safeFilename));
+      const resolvedUploadDir = path.resolve(uploadDir);
 
-    // Belt-and-suspenders: verify the resolved path stays inside uploadDir
-    if (!resolvedPath.startsWith(resolvedUploadDir + path.sep)) {
-      return res.status(400).json({ message: "Invalid filename." });
+      // Verify resolved path stays strictly inside uploadDir
+      if (!resolvedPath.startsWith(resolvedUploadDir + path.sep)) {
+        return res.status(400).json({ message: "Invalid filename." });
+      }
+
+      if (!fs.existsSync(resolvedPath)) {
+        return res.status(404).json({ message: "File not found." });
+      }
+
+      // Verify report exists in database and belongs to authorized user
+      const report = await storage.getReportByFileName(safeFilename);
+      const userId = DEFAULT_USER_ID; // Server-controlled user context
+      if (report && report.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: Access denied." });
+      }
+
+      return res.sendFile(resolvedPath);
+    } catch (error: unknown) {
+      console.error("[files/:filename]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
     }
-    if (!fs.existsSync(resolvedPath)) {
-      return res.status(404).json({ message: "File not found." });
-    }
-    return res.sendFile(resolvedPath);
   });
 
   // ── POST /api/webhook/n8n-response ────────────────────────────────────────

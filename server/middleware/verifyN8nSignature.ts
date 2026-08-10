@@ -38,15 +38,16 @@ export function verifyN8nSignature(req: Request, res: Response, next: NextFuncti
     return;
   }
 
-  const expected = `sha256=${crypto
+  const rawSignature = signatureHeader.replace(/^sha256=/, "").trim();
+  const computedDigest = crypto
     .createHmac("sha256", secret)
     .update(rawBody)
-    .digest("hex")}`;
+    .digest("hex");
 
   // timingSafeEqual prevents timing-based attacks that compare byte-by-byte
   try {
-    const expectedBuf = Buffer.from(expected);
-    const receivedBuf = Buffer.from(signatureHeader);
+    const expectedBuf = Buffer.from(computedDigest, "utf8");
+    const receivedBuf = Buffer.from(rawSignature, "utf8");
 
     if (
       expectedBuf.length !== receivedBuf.length ||

@@ -24,6 +24,15 @@
     },
     {
       "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst secret = process.env.N8N_WEBHOOK_SECRET || '4f8b9e2c1a3d5e7f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f';\n\nconst payload = {\n  reportId: $node['Webhook Trigger'].json.body.reportId,\n  healthScore: 85,\n  anomalies: [\n    {\n      severity: 'Low',\n      variance: 3.5,\n      description: 'Minor seasonal variance detected in tech infrastructure expenses.'\n    }\n  ],\n  chartData: [\n    { month: 'Jan', revenue: 120000, expenses: 85000 },\n    { month: 'Feb', revenue: 135000, expenses: 88000 },\n    { month: 'Mar', revenue: 142000, expenses: 91000 }\n  ],\n  expenseBreakdown: [\n    { category: 'Payroll', amount: 150000, percentage: 57 },\n    { category: 'Technology', amount: 50000, percentage: 19 },\n    { category: 'Operations', amount: 40000, percentage: 15 },\n    { category: 'Marketing', amount: 24000, percentage: 9 }\n  ],\n  aiCommentary: 'AI analysis completed: Solid revenue trajectory with controlled operational overhead.'\n};\n\nconst jsonString = JSON.stringify(payload);\nconst signature = crypto.createHmac('sha256', secret).update(jsonString).digest('hex');\n\nreturn {\n  json: {\n    payload,\n    signature\n  }\n};"
+      },
+      "name": "Compute HMAC Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://localhost:5000/api/webhook/n8n-response",
         "sendHeaders": true,
@@ -37,13 +46,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"reportId\": \"{{ $node['Webhook Trigger'].json.body.reportId }}\",\n  \"healthScore\": 85,\n  \"anomalies\": [],\n  \"chartData\": [],\n  \"expenseBreakdown\": [],\n  \"aiCommentary\": \"AI analysis completed successfully.\"\n}",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
         "options": {}
       },
       "name": "Send Response to FinPulse",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [650, 300]
+      "position": [850, 300]
     }
   ],
   "connections": {
@@ -59,6 +68,17 @@
       ]
     },
     "Download CSV File": {
+      "main": [
+        [
+          {
+            "node": "Compute HMAC Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute HMAC Signature": {
       "main": [
         [
           {

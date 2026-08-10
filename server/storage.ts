@@ -18,6 +18,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   createReport(report: InsertFinancialReport): Promise<FinancialReport>;
   getReport(id: string): Promise<FinancialReport | undefined>;
+  getReportByFileName(fileName: string): Promise<FinancialReport | undefined>;
   getLatestReportByUser(userId: string): Promise<FinancialReport | undefined>;
   // [FIX-H1] Pagination parameters prevent unbounded result sets
   getReportsByUser(userId: string, limit?: number, offset?: number): Promise<FinancialReport[]>;
@@ -57,6 +58,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(financialReports)
       .where(eq(financialReports.id, id));
+    return report;
+  }
+
+  async getReportByFileName(fileName: string): Promise<FinancialReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(financialReports)
+      .where(eq(financialReports.fileName, fileName));
     return report;
   }
 

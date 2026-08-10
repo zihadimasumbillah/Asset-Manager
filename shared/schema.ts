@@ -89,6 +89,8 @@ export const financialReports = pgTable(
       table.userId,
       table.createdAt.desc()
     ),
+    // Index for fast filename lookup during secure file downloads
+    fileNameIdx: index("idx_reports_file_name").on(table.fileName),
   })
 );
 
