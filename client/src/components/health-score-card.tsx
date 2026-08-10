@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { HeartPulse } from "lucide-react";
+import { memo } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface HealthScoreCardProps {
+export interface HealthScoreCardProps {
   score: number | null;
 }
 
@@ -26,7 +27,7 @@ function getScoreRingColor(score: number): string {
   return "hsl(var(--destructive))";
 }
 
-export function HealthScoreCard({ score }: HealthScoreCardProps) {
+export const HealthScoreCard = memo(function HealthScoreCard({ score }: HealthScoreCardProps) {
   const circumference = 2 * Math.PI * 54;
   const offset = score !== null ? circumference - (score / 100) * circumference : circumference;
 
@@ -96,4 +97,4 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

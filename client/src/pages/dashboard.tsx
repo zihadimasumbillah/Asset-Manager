@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity, TrendingUp, Shield } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { AiCommentary } from "@/components/ai-commentary";
 import { AnomalyFeed } from "@/components/anomaly-feed";
@@ -14,7 +14,6 @@ import type { FinancialReport } from "@shared/schema";
 
 export default function Dashboard() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
 
   const { data: reports, refetch: refetchReports } = useQuery<FinancialReport[]>({
     queryKey: ["/api/reports"],
@@ -23,31 +22,40 @@ export default function Dashboard() {
   const { data: activeReport } = useQuery<FinancialReport>({
     queryKey: [`/api/reports/${activeReportId}`],
     enabled: !!activeReportId,
-    refetchInterval: isPolling ? 5000 : false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || data.status === "processing") {
+        return 2000;
+      }
+      return false;
+    },
   });
 
+  const isCompleted = activeReport?.status === "completed";
+  const isProcessing = !!activeReportId && (!activeReport || activeReport.status === "processing");
+
   useEffect(() => {
-    if (activeReport?.status === "completed" && isPolling) {
-      const timer = setTimeout(() => {
-        setIsPolling(false);
-        void refetchReports();
-      }, 0);
-      return () => clearTimeout(timer);
+    if (isCompleted) {
+      void refetchReports();
     }
-  }, [activeReport?.status, isPolling, refetchReports]);
+  }, [isCompleted, refetchReports]);
 
-  const latestCompleted = reports?.find((r) => r.status === "completed");
-  const displayReport = activeReport?.status === "completed" ? activeReport : latestCompleted;
+  const latestCompleted = useMemo(() => reports?.find((r) => r.status === "completed"), [reports]);
 
-  const handleUploadSuccess = (reportId: string) => {
+  const displayReport = useMemo(
+    () => (activeReport?.status === "completed" ? activeReport : latestCompleted),
+    [activeReport, latestCompleted]
+  );
+
+  const safeReports = useMemo(() => reports ?? [], [reports]);
+
+  const handleUploadSuccess = useCallback((reportId: string) => {
     setActiveReportId(reportId);
-    setIsPolling(true);
-  };
+  }, []);
 
-  const handleSelectReport = (reportId: string) => {
+  const handleSelectReport = useCallback((reportId: string) => {
     setActiveReportId(reportId);
-    setIsPolling(false);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,14 +86,14 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-6 py-6">
-        {isPolling && activeReport?.status === "processing" && <ProcessingOverlay />}
+        {isProcessing && <ProcessingOverlay />}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
             <FileUpload onUploadSuccess={handleUploadSuccess} />
             <HealthScoreCard score={displayReport?.healthScore ?? null} />
             <ReportHistory
-              reports={reports || []}
+              reports={safeReports}
               activeReportId={activeReportId}
               onSelectReport={handleSelectReport}
             />

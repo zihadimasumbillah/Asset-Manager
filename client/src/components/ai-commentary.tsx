@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { memo } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface AiCommentaryProps {
+export interface AiCommentaryProps {
   commentary: string | null;
 }
 
-export function AiCommentary({ commentary }: AiCommentaryProps) {
+export const AiCommentary = memo(function AiCommentary({ commentary }: AiCommentaryProps) {
   if (!commentary) return null;
 
   return (
@@ -34,4 +35,4 @@ export function AiCommentary({ commentary }: AiCommentaryProps) {
       </Card>
     </motion.div>
   );
-}
+});

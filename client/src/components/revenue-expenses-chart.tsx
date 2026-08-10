@@ -1,4 +1,5 @@
 import { TrendingUp } from "lucide-react";
+import { memo } from "react";
 import {
   LineChart,
   Line,
@@ -13,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ChartDataPoint } from "@shared/schema";
 
-interface RevenueExpensesChartProps {
+export interface RevenueExpensesChartProps {
   data: ChartDataPoint[] | null;
 }
 
@@ -47,7 +48,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-export function RevenueExpensesChart({ data }: RevenueExpensesChartProps) {
+export const RevenueExpensesChart = memo(function RevenueExpensesChart({
+  data,
+}: RevenueExpensesChartProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -72,7 +75,7 @@ export function RevenueExpensesChart({ data }: RevenueExpensesChartProps) {
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                  tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
@@ -113,4 +116,4 @@ export function RevenueExpensesChart({ data }: RevenueExpensesChartProps) {
       </CardContent>
     </Card>
   );
-}
+});

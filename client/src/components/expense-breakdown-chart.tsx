@@ -1,10 +1,11 @@
 import { PieChart as PieChartIcon } from "lucide-react";
+import { memo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExpenseBreakdown } from "@shared/schema";
 
-interface ExpenseBreakdownChartProps {
+export interface ExpenseBreakdownChartProps {
   data: ExpenseBreakdown[] | null;
 }
 
@@ -45,7 +46,9 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   );
 }
 
-export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
+export const ExpenseBreakdownChart = memo(function ExpenseBreakdownChart({
+  data,
+}: ExpenseBreakdownChartProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -71,8 +74,8 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
                     strokeWidth={2}
                     stroke="hsl(var(--card))"
                   >
-                    {data.map((_entry, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    {data.map((entry, index) => (
+                      <Cell key={entry.category || index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -103,4 +106,4 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
       </CardContent>
     </Card>
   );
-}
+});

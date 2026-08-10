@@ -1,11 +1,12 @@
 import { History, FileSpreadsheet, Loader2 } from "lucide-react";
+import { memo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FinancialReport } from "@shared/schema";
 
-interface ReportHistoryProps {
+export interface ReportHistoryProps {
   reports: FinancialReport[];
   activeReportId: string | null;
   onSelectReport: (id: string) => void;
@@ -23,7 +24,11 @@ function getStatusBadge(status: string) {
   return <Badge variant="destructive">Failed</Badge>;
 }
 
-export function ReportHistory({ reports, activeReportId, onSelectReport }: ReportHistoryProps) {
+export const ReportHistory = memo(function ReportHistory({
+  reports,
+  activeReportId,
+  onSelectReport,
+}: ReportHistoryProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -78,4 +83,4 @@ export function ReportHistory({ reports, activeReportId, onSelectReport }: Repor
       </CardContent>
     </Card>
   );
-}
+});

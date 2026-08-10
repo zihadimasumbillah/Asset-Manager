@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { memo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Anomaly } from "@shared/schema";
 
-interface AnomalyFeedProps {
+export interface AnomalyFeedProps {
   anomalies: Anomaly[] | null;
 }
 
@@ -16,7 +17,7 @@ function getSeverityVariant(severity: string): "default" | "secondary" | "destru
   return "secondary";
 }
 
-export function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
+export const AnomalyFeed = memo(function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -38,7 +39,7 @@ export function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
             <div className="space-y-3">
               {anomalies.map((anomaly, index) => (
                 <motion.div
-                  key={index}
+                  key={anomaly.description || index}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.08 }}
@@ -89,4 +90,4 @@ export function AnomalyFeed({ anomalies }: AnomalyFeedProps) {
       </CardContent>
     </Card>
   );
-}
+});

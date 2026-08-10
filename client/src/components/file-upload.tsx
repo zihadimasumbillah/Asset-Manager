@@ -1,16 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileSpreadsheet, X, CheckCircle2 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-interface FileUploadProps {
+export interface FileUploadProps {
   onUploadSuccess: (reportId: string) => void;
 }
 
-export function FileUpload({ onUploadSuccess }: FileUploadProps) {
+export const FileUpload = memo(function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -44,12 +44,17 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     [toast]
   );
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) setFile(selected);
-  };
+  }, []);
 
-  const handleUpload = async () => {
+  const handleClearFile = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFile(null);
+  }, []);
+
+  const handleUpload = useCallback(async () => {
     if (!file) return;
     setIsUploading(true);
     try {
@@ -75,7 +80,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [file, onUploadSuccess, toast]);
 
   return (
     <Card>
@@ -124,10 +129,7 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
                 </p>
                 <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null);
-                  }}
+                  onClick={handleClearFile}
                   className="absolute top-2 right-2 p-1 rounded-sm text-muted-foreground"
                   data-testid="button-clear-file"
                 >
@@ -189,4 +191,4 @@ export function FileUpload({ onUploadSuccess }: FileUploadProps) {
       </CardContent>
     </Card>
   );
-}
+});
