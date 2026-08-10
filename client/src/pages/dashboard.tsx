@@ -28,8 +28,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (activeReport?.status === "completed" && isPolling) {
-      setIsPolling(false);
-      refetchReports();
+      const timer = setTimeout(() => {
+        setIsPolling(false);
+        void refetchReports();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [activeReport?.status, isPolling, refetchReports]);
 

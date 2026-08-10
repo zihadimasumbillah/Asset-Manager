@@ -127,7 +127,7 @@ describe("n8nResponseSchema", () => {
   });
 
   it("rejects missing reportId", () => {
-    const { reportId: _id, ...withoutId } = validPayload;
+    const withoutId = { ...validPayload, reportId: undefined };
     const result = n8nResponseSchema.safeParse(withoutId);
     expect(result.success).toBe(false);
   });

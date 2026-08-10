@@ -57,6 +57,7 @@ async function buildTestApp() {
   app.use(express.urlencoded({ extended: false }));
   const httpServer = createServer(app);
   registerRoutes(httpServer, app);
+  await Promise.resolve();
   return { app, httpServer };
 }
 
