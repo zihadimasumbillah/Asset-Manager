@@ -85,26 +85,40 @@ Return ONLY the JSON object, no markdown formatting, no explanations outside JSO
   };
 
   const baseUrl = apiBaseUrl.replace(/\/+$/, "");
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI API error ${response.status}: ${errorText}`);
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`AI API error ${response.status}: ${errorText}`);
+    }
+
+    const data = (await response.json()) as AihubmaxChatResponse;
+    const content = data.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("AI returned empty response");
+    }
+
+    const parsed: unknown = JSON.parse(content);
+    return n8nResponseSchema.parse(parsed);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("AI API request timed out after 30 seconds");
+    }
+    throw error;
   }
-
-  const data = (await response.json()) as AihubmaxChatResponse;
-  const content = data.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("AI returned empty response");
-  }
-
-  const parsed: unknown = JSON.parse(content);
-  return n8nResponseSchema.parse(parsed);
 }

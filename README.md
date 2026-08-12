@@ -130,16 +130,19 @@ curl http://localhost:5000/api/reports
 
 All variables are documented in [`.env.example`](./.env.example). Copy it to `.env` before starting.
 
-| Variable             | Required         | Description                                           |
-| -------------------- | ---------------- | ----------------------------------------------------- |
-| `DATABASE_URL`       | ✅               | PostgreSQL connection string                          |
-| `PORT`               | No (5000)        | Server port                                           |
-| `NODE_ENV`           | No (development) | `development` \| `production` \| `test`               |
-| `SEED_DEMO_DATA`     | No (true)        | Set to `false` to disable demo data seeding           |
-| `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n   |
-| `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                |
-| `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                              |
-| `N8N_WEBHOOK_SECRET` | ✅ if n8n used   | 32-char hex string for webhook signature verification |
+| Variable             | Required         | Description                                                 |
+| -------------------- | ---------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`       | ✅               | PostgreSQL connection string                                |
+| `PORT`               | No (5000)        | Server port                                                 |
+| `NODE_ENV`           | No (development) | `development` \| `production` \| `test`                     |
+| `SEED_DEMO_DATA`     | No (true)        | Set to `false` to disable demo data seeding                 |
+| `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n         |
+| `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                      |
+| `AI_API_KEY`         | No               | API key for aihubmax AI analysis                            |
+| `AI_API_BASE_URL`    | No               | Base URL for AI API (default: `https://api.aihumax.com/v1`) |
+| `AI_MODEL`           | No               | Model identifier (default: `gpt-4o-mini`)                   |
+| `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                                    |
+| `N8N_WEBHOOK_SECRET` | ✅ if n8n used   | 32-char hex string for webhook signature verification       |
 
 > **Never commit `.env`** — it is listed in `.gitignore`.
 
@@ -227,6 +230,76 @@ See [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) for the ful
 | `VERCEL_TOKEN`      | Vercel → Account Settings → Tokens         |
 | `VERCEL_ORG_ID`     | `.vercel/project.json` after `vercel link` |
 | `VERCEL_PROJECT_ID` | `.vercel/project.json` after `vercel link` |
+
+---
+
+## AI Integration
+
+### Troubleshooting: AI Analysis Not Working
+
+**Symptom:** File uploads succeed, but reports complete without AI-generated health scores, anomalies, or commentary. The dashboard shows generic/local-parsed data instead of AI analysis.
+
+**Root Cause:** The AI integration requires two environment variables: `AI_API_KEY` and `AI_API_BASE_URL`. If either is missing or misconfigured, the server silently falls back to local CSV parsing. Additionally, the AI API endpoint (`analyzeWithAihubmax`) previously had no request timeout, causing serverless functions to hang on DNS failures.
+
+**Fixes Applied:**
+
+- Added a **30-second timeout** to all AI API requests using `AbortController`
+- Improved error logging to distinguish between:
+  - Missing `AI_API_KEY` (falls back to local parsing)
+  - Network/DNS failures (falls back to local parsing)
+  - AI API errors (falls back to local parsing)
+- The fallback to local CSV parsing is now logged with `[direct AI analysis error]` prefix for visibility
+
+**Required Environment Variables:**
+
+```bash
+AI_API_KEY=your-ai-api-key
+AI_API_BASE_URL=https://api.aihumax.com/v1
+AI_MODEL=gpt-4o-mini
+```
+
+**Verification:**
+
+```bash
+# Check that AI variables are set
+echo $AI_API_KEY
+echo $AI_API_BASE_URL
+
+# Upload a CSV and watch server logs for:
+# [direct AI analysis error] ... (if AI fails)
+# OR successful AI processing
+```
+
+---
+
+## UI Components
+
+### Tabs Component: Touch Event Fix
+
+**Symptom:** On mobile or touch-enabled devices, tapping the currently selected tab causes it to become unselected.
+
+**Root Cause:** The `TabsTrigger` component did not intercept touch pointer events. On touch devices, Radix UI's default pointer handling can fire conflicting `pointerdown`/`click` sequences that briefly clear the active state before re-selecting, causing a visible flicker or deselection.
+
+**Fix Applied:**
+
+- Added `onPointerDown` handler to `TabsTrigger` that calls `preventDefault()` for touch pointer types
+- This prevents the browser's default touch behavior from interfering with Radix UI's state management
+- The component now maintains stable selection state across mouse, touch, and keyboard interactions
+
+**Component Usage:**
+
+```tsx
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <TabsList>
+    <TabsTrigger value="overview">Overview</TabsTrigger>
+    <TabsTrigger value="details">Details</TabsTrigger>
+  </TabsList>
+  <TabsContent value="overview">...</TabsContent>
+  <TabsContent value="details">...</TabsContent>
+</Tabs>;
+```
 
 ---
 
