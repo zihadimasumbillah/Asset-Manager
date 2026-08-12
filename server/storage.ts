@@ -10,6 +10,9 @@ import {
   type N8nResponse,
   type ReportStatus,
   type User,
+  type Anomaly,
+  type ChartDataPoint,
+  type ExpenseBreakdown,
   financialReports,
   users,
 } from "../shared/schema.js";
@@ -17,7 +20,7 @@ import {
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(insertUser: InsertUser): Promise<User>;
   createReport(report: InsertFinancialReport): Promise<FinancialReport>;
   getReport(id: string): Promise<FinancialReport | undefined>;
   getReportByFileName(fileName: string): Promise<FinancialReport | undefined>;
@@ -28,6 +31,25 @@ export interface IStorage {
     data: N8nResponse
   ): Promise<FinancialReport | undefined>;
   updateReportStatus(reportId: string, status: ReportStatus): Promise<void>;
+  deleteReport(id: string): Promise<boolean>;
+  searchReports(
+    userId: string,
+    query?: string,
+    minHealthScore?: number,
+    maxHealthScore?: number,
+    status?: ReportStatus,
+    limit?: number,
+    offset?: number
+  ): Promise<FinancialReport[]>;
+  getUserStats(userId: string): Promise<{
+    totalReports: number;
+    completedReports: number;
+    processingReports: number;
+    failedReports: number;
+    avgHealthScore: number | null;
+    totalAnomalies: number;
+    highSeverityAnomalies: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -109,6 +131,102 @@ export class DatabaseStorage implements IStorage {
   async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
     await db!.update(financialReports).set({ status }).where(eq(financialReports.id, reportId));
   }
+
+  async deleteReport(id: string): Promise<boolean> {
+    const [deleted] = await db!
+      .delete(financialReports)
+      .where(eq(financialReports.id, id))
+      .returning();
+    return !!deleted;
+  }
+
+  async searchReports(
+    userId: string,
+    query?: string,
+    minHealthScore?: number,
+    maxHealthScore?: number,
+    status?: ReportStatus,
+    limit = 50,
+    offset = 0
+  ): Promise<FinancialReport[]> {
+    const all = await db!
+      .select()
+      .from(financialReports)
+      .where(eq(financialReports.userId, userId))
+      .orderBy(desc(financialReports.createdAt));
+
+    let results = all;
+
+    if (query && query.trim()) {
+      const q = query.toLowerCase();
+      results = results.filter((r) => r.fileName?.toLowerCase().includes(q));
+    }
+
+    if (minHealthScore !== undefined || maxHealthScore !== undefined) {
+      results = results.filter((r) => {
+        if (r.healthScore === null) return false;
+        if (minHealthScore !== undefined && r.healthScore < minHealthScore) return false;
+        if (maxHealthScore !== undefined && r.healthScore > maxHealthScore) return false;
+        return true;
+      });
+    }
+
+    if (status !== undefined) {
+      results = results.filter((r) => r.status === status);
+    }
+
+    return results.slice(offset, offset + limit);
+  }
+
+  async getUserStats(userId: string): Promise<{
+    totalReports: number;
+    completedReports: number;
+    processingReports: number;
+    failedReports: number;
+    avgHealthScore: number | null;
+    totalAnomalies: number;
+    highSeverityAnomalies: number;
+  }> {
+    const reports = await db!
+      .select()
+      .from(financialReports)
+      .where(eq(financialReports.userId, userId));
+
+    const totalReports = reports.length;
+    const completedReports = reports.filter((r) => r.status === "completed").length;
+    const processingReports = reports.filter((r) => r.status === "processing").length;
+    const failedReports = reports.filter((r) => r.status === "failed").length;
+
+    const completedWithScore = reports.filter(
+      (r) => r.status === "completed" && r.healthScore !== null
+    );
+    const avgHealthScore =
+      completedWithScore.length > 0
+        ? Math.round(
+            completedWithScore.reduce((sum, r) => sum + (r.healthScore ?? 0), 0) /
+              completedWithScore.length
+          )
+        : null;
+
+    let totalAnomalies = 0;
+    let highSeverityAnomalies = 0;
+    for (const r of reports) {
+      if (r.anomalies && Array.isArray(r.anomalies)) {
+        totalAnomalies += r.anomalies.length;
+        highSeverityAnomalies += r.anomalies.filter((a) => a.severity === "High").length;
+      }
+    }
+
+    return {
+      totalReports,
+      completedReports,
+      processingReports,
+      failedReports,
+      avgHealthScore,
+      totalAnomalies,
+      highSeverityAnomalies,
+    };
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -142,9 +260,9 @@ export class MemStorage implements IStorage {
       status: report.status ?? "processing",
       fileName: report.fileName ?? null,
       healthScore: report.healthScore ?? null,
-      anomalies: report.anomalies as Anomaly[] | null ?? null,
-      chartData: report.chartData as ChartDataPoint[] | null ?? null,
-      expenseBreakdown: report.expenseBreakdown as ExpenseBreakdown[] | null ?? null,
+      anomalies: (report.anomalies as Anomaly[] | null) ?? null,
+      chartData: (report.chartData as ChartDataPoint[] | null) ?? null,
+      expenseBreakdown: (report.expenseBreakdown as ExpenseBreakdown[] | null) ?? null,
       aiCommentary: report.aiCommentary ?? null,
       createdAt: new Date(),
     };
@@ -204,6 +322,94 @@ export class MemStorage implements IStorage {
     if (report) {
       report.status = status;
     }
+  }
+
+  async deleteReport(id: string): Promise<boolean> {
+    await Promise.resolve();
+    return this.reportsMap.delete(id);
+  }
+
+  async searchReports(
+    userId: string,
+    query?: string,
+    minHealthScore?: number,
+    maxHealthScore?: number,
+    status?: ReportStatus,
+    limit = 50,
+    offset = 0
+  ): Promise<FinancialReport[]> {
+    await Promise.resolve();
+    let results = Array.from(this.reportsMap.values())
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+
+    if (query && query.trim()) {
+      const q = query.toLowerCase();
+      results = results.filter((r) => r.fileName?.toLowerCase().includes(q));
+    }
+
+    if (minHealthScore !== undefined || maxHealthScore !== undefined) {
+      results = results.filter((r) => {
+        if (r.healthScore === null) return false;
+        if (minHealthScore !== undefined && r.healthScore < minHealthScore) return false;
+        if (maxHealthScore !== undefined && r.healthScore > maxHealthScore) return false;
+        return true;
+      });
+    }
+
+    if (status !== undefined) {
+      results = results.filter((r) => r.status === status);
+    }
+
+    return results.slice(offset, offset + limit);
+  }
+
+  async getUserStats(userId: string): Promise<{
+    totalReports: number;
+    completedReports: number;
+    processingReports: number;
+    failedReports: number;
+    avgHealthScore: number | null;
+    totalAnomalies: number;
+    highSeverityAnomalies: number;
+  }> {
+    await Promise.resolve();
+    const reports = Array.from(this.reportsMap.values()).filter((r) => r.userId === userId);
+
+    const totalReports = reports.length;
+    const completedReports = reports.filter((r) => r.status === "completed").length;
+    const processingReports = reports.filter((r) => r.status === "processing").length;
+    const failedReports = reports.filter((r) => r.status === "failed").length;
+
+    const completedWithScore = reports.filter(
+      (r) => r.status === "completed" && r.healthScore !== null
+    );
+    const avgHealthScore =
+      completedWithScore.length > 0
+        ? Math.round(
+            completedWithScore.reduce((sum, r) => sum + (r.healthScore ?? 0), 0) /
+              completedWithScore.length
+          )
+        : null;
+
+    let totalAnomalies = 0;
+    let highSeverityAnomalies = 0;
+    for (const r of reports) {
+      if (r.anomalies && Array.isArray(r.anomalies)) {
+        totalAnomalies += r.anomalies.length;
+        highSeverityAnomalies += r.anomalies.filter((a) => a.severity === "High").length;
+      }
+    }
+
+    return {
+      totalReports,
+      completedReports,
+      processingReports,
+      failedReports,
+      avgHealthScore,
+      totalAnomalies,
+      highSeverityAnomalies,
+    };
   }
 }
 

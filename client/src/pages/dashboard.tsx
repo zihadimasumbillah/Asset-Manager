@@ -1,22 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, TrendingUp, Shield } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { AiCommentary } from "@/components/ai-commentary";
 import { AnomalyFeed } from "@/components/anomaly-feed";
+import { CompareView } from "@/components/compare-view";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { FileUpload } from "@/components/file-upload";
 import { HealthScoreCard } from "@/components/health-score-card";
 import { ProcessingOverlay } from "@/components/processing-overlay";
 import { ReportHistory } from "@/components/report-history";
 import { RevenueExpensesChart } from "@/components/revenue-expenses-chart";
+import { StatsCards } from "@/components/stats-cards";
 import type { FinancialReport } from "@shared/schema";
 
 export default function Dashboard() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   const { data: reports, refetch: refetchReports } = useQuery<FinancialReport[]>({
     queryKey: ["/api/reports"],
+  });
+
+  const { data: stats } = useQuery<{
+    totalReports: number;
+    completedReports: number;
+    processingReports: number;
+    failedReports: number;
+    avgHealthScore: number | null;
+    totalAnomalies: number;
+    highSeverityAnomalies: number;
+  }>({
+    queryKey: ["/api/stats"],
   });
 
   const { data: activeReport } = useQuery<FinancialReport>({
@@ -37,8 +53,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (isCompleted) {
       void refetchReports();
+      void queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
     }
-  }, [isCompleted, refetchReports]);
+  }, [isCompleted, refetchReports, queryClient]);
 
   const latestCompleted = useMemo(() => reports?.find((r) => r.status === "completed"), [reports]);
 
@@ -53,8 +70,73 @@ export default function Dashboard() {
     setActiveReportId(reportId);
   }, []);
 
-  const handleSelectReport = useCallback((reportId: string) => {
-    setActiveReportId(reportId);
+  const handleDeleteReport = useCallback(
+    async (id: string) => {
+      const res = await fetch(`/api/reports/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({ message: "Delete failed" }))) as {
+          message?: string;
+        };
+        throw new Error(err.message || "Delete failed");
+      }
+      if (activeReportId === id) {
+        setActiveReportId(null);
+      }
+      setCompareIds((prev) => prev.filter((cid) => cid !== id));
+      await queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    },
+    [activeReportId, queryClient]
+  );
+
+  const handleExportReport = useCallback(async (id: string) => {
+    const res = await fetch(`/api/reports/export/${id}`);
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({ message: "Export failed" }))) as {
+        message?: string;
+      };
+      throw new Error(err.message || "Export failed");
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report_${id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, []);
+
+  const handleToggleCompare = useCallback((id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((cid) => cid !== id);
+      }
+      if (prev.length >= 2) return prev;
+      return [...prev, id];
+    });
+  }, []);
+
+  const handleClearCompare = useCallback(() => {
+    setCompareIds([]);
+  }, []);
+
+  const compareReports = useMemo((): [FinancialReport | null, FinancialReport | null] => {
+    if (compareIds.length !== 2) return [null, null];
+    return [
+      safeReports.find((r) => r.id === compareIds[0]) ?? null,
+      safeReports.find((r) => r.id === compareIds[1]) ?? null,
+    ];
+  }, [compareIds, safeReports]);
+
+  const handleCompareSelect = useCallback((id: string) => {
+    setActiveReportId(id);
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev;
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
   }, []);
 
   return (
@@ -88,6 +170,10 @@ export default function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-6 py-6">
         {isProcessing && <ProcessingOverlay />}
 
+        <div className="mb-6">
+          <StatsCards stats={stats} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
             <FileUpload onUploadSuccess={handleUploadSuccess} />
@@ -95,11 +181,19 @@ export default function Dashboard() {
             <ReportHistory
               reports={safeReports}
               activeReportId={activeReportId}
-              onSelectReport={handleSelectReport}
+              onSelectReport={handleCompareSelect}
+              onDeleteReport={handleDeleteReport}
+              onExportReport={handleExportReport}
+              compareIds={compareIds}
+              onToggleCompare={handleToggleCompare}
+              onClearCompare={handleClearCompare}
             />
           </div>
 
           <div className="lg:col-span-8 space-y-6">
+            {compareIds.length === 2 && (
+              <CompareView reports={compareReports} onClear={handleClearCompare} />
+            )}
             <RevenueExpensesChart data={displayReport?.chartData ?? null} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ExpenseBreakdownChart data={displayReport?.expenseBreakdown ?? null} />

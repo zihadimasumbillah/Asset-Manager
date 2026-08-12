@@ -16,6 +16,7 @@ import {
   type Anomaly,
   type ChartDataPoint,
   type ExpenseBreakdown,
+  type ReportStatus,
 } from "../shared/schema.js";
 import { verifyN8nSignature } from "./middleware/verifyN8nSignature.js";
 import { storage } from "./storage.js";
@@ -36,9 +37,7 @@ const aiApiKey = process.env.AI_API_KEY;
 const aiApiBaseUrl = process.env.AI_API_BASE_URL || "https://api.openai.com/v1";
 const aiModel = process.env.AI_MODEL || "gpt-4o-mini";
 
-const openai = aiApiKey
-  ? new OpenAI({ apiKey: aiApiKey, baseURL: aiApiBaseUrl })
-  : null;
+const openai = aiApiKey ? new OpenAI({ apiKey: aiApiKey, baseURL: aiApiBaseUrl }) : null;
 
 async function analyzeWithAI(csvContent: string, _fileName: string): Promise<N8nResponse> {
   if (!openai) {
@@ -403,7 +402,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
           try {
             if (openai) {
               const csvContent = fs.readFileSync(savedFilePath, "utf-8");
-              const parsedResults = await analyzeWithAI(csvContent, req.file?.originalname || "Uploaded CSV");
+              const parsedResults = await analyzeWithAI(
+                csvContent,
+                req.file?.originalname || "Uploaded CSV"
+              );
               await storage.updateReportWithResults(report.id, parsedResults);
             } else {
               const parsedResults = parseCsvFinancials(
@@ -424,7 +426,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
           void (async () => {
             try {
               const csvContent = fs.readFileSync(savedFilePath, "utf-8");
-              const parsedResults = await analyzeWithAI(csvContent, req.file?.originalname || "Uploaded CSV");
+              const parsedResults = await analyzeWithAI(
+                csvContent,
+                req.file?.originalname || "Uploaded CSV"
+              );
               await storage.updateReportWithResults(report.id, parsedResults);
             } catch (aiErr: unknown) {
               console.error("[direct AI analysis error]:", aiErr);
@@ -568,6 +573,107 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
       return res.json(reports);
     } catch (error: unknown) {
       console.error("[reports]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── DELETE /api/reports/:id ───────────────────────────────────────────────
+  app.delete("/api/reports/:id", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const report = await storage.getReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found." });
+      }
+      if (report.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: Access denied." });
+      }
+      const deleted = await storage.deleteReport(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Report not found." });
+      }
+      return res.json({ message: "Report deleted successfully.", reportId: req.params.id });
+    } catch (error: unknown) {
+      console.error("[reports/:id delete]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/stats ────────────────────────────────────────────────────────
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const stats = await storage.getUserStats(userId);
+      return res.json(stats);
+    } catch (error: unknown) {
+      console.error("[stats]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/reports/search ───────────────────────────────────────────────
+  app.get("/api/reports/search", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const query = typeof req.query.q === "string" ? req.query.q : "";
+      const minHealthScore = req.query.minScore ? Number(req.query.minScore) : undefined;
+      const maxHealthScore = req.query.maxScore ? Number(req.query.maxScore) : undefined;
+      const status = req.query.status as ReportStatus | undefined;
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const offset = Number(req.query.offset) || 0;
+      const reports = await storage.searchReports(
+        userId,
+        query,
+        minHealthScore,
+        maxHealthScore,
+        status,
+        limit,
+        offset
+      );
+      return res.json(reports);
+    } catch (error: unknown) {
+      console.error("[reports/search]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/reports/export/:id ───────────────────────────────────────────
+  app.get("/api/reports/export/:id", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const report = await storage.getReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found." });
+      }
+      if (report.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: Access denied." });
+      }
+      if (report.status !== "completed") {
+        return res.status(400).json({ message: "Report is not completed yet." });
+      }
+
+      const exportData = {
+        fileName: report.fileName,
+        exportedAt: new Date().toISOString(),
+        healthScore: report.healthScore,
+        aiCommentary: report.aiCommentary,
+        chartData: report.chartData,
+        anomalies: report.anomalies,
+        expenseBreakdown: report.expenseBreakdown,
+      };
+
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${report.fileName?.replace(/\.csv$/i, "")}_report.json"`
+      );
+      return res.json(exportData);
+    } catch (error: unknown) {
+      console.error("[reports/export]", error);
       const { status, message } = toClientError(error);
       return res.status(status).json({ message });
     }
