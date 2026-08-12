@@ -12,7 +12,7 @@ import {
   type User,
   financialReports,
   users,
-} from "../shared/schema";
+} from "../shared/schema.ts";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
