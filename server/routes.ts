@@ -8,7 +8,6 @@ import path from "path";
 import type { Express } from "express";
 import { rateLimit } from "express-rate-limit";
 import multer, { diskStorage } from "multer";
-import { OpenAI } from "openai";
 
 import {
   n8nResponseSchema,
@@ -18,6 +17,8 @@ import {
   type ExpenseBreakdown,
   type ReportStatus,
 } from "../shared/schema.js";
+import { analyzeWithAihubmax } from "./ai/aihubmax.js";
+import { createSessionKey, requireAuth, type AuthenticatedRequest } from "./auth/session.js";
 import { verifyN8nSignature } from "./middleware/verifyN8nSignature.js";
 import { storage } from "./storage.js";
 import { toClientError } from "./utils/errors.js";
@@ -34,79 +35,15 @@ if (!fs.existsSync(uploadDir)) {
 // ── AI Configuration ──────────────────────────────────────────────────────────
 
 const aiApiKey = process.env.AI_API_KEY;
-const aiApiBaseUrl = process.env.AI_API_BASE_URL || "https://api.openai.com/v1";
+const aiApiBaseUrl = process.env.AI_API_BASE_URL || "https://api.aihumax.com/v1";
 const aiModel = process.env.AI_MODEL || "gpt-4o-mini";
 
-const openai = aiApiKey ? new OpenAI({ apiKey: aiApiKey, baseURL: aiApiBaseUrl }) : null;
-
-async function analyzeWithAI(csvContent: string, _fileName: string): Promise<N8nResponse> {
-  if (!openai) {
+async function analyzeWithAI(csvContent: string, fileName: string): Promise<N8nResponse> {
+  if (!aiApiKey) {
     throw new Error("AI_API_KEY is not configured");
   }
 
-  const prompt = `You are a senior financial analyst AI specializing in small business health diagnostics and P&L anomaly detection. Analyze the following CSV financial data and return ONLY valid JSON matching this exact schema:
-
-{
-  "healthScore": number,
-  "anomalies": [{"severity": "High|Medium|Low", "description": "string", "variance": number}],
-  "chartData": [{"month": "string", "revenue": number, "expenses": number}],
-  "expenseBreakdown": [{"category": "string", "amount": number, "percentage": number}],
-  "aiCommentary": "string"
-}
-
-ANALYSIS RULES:
-1. healthScore: integer 0-100 based on:
-   - Revenue stability and growth trajectory (weight: 30)
-   - Expense control and margin preservation (weight: 25)
-   - Cash flow patterns and operational efficiency (weight: 25)
-   - Risk indicators and anomaly severity (weight: 20)
-
-2. anomalies: identify 3-6 significant financial anomalies with:
-   - severity: "High" for >15% deviations or critical cash flow issues, "Medium" for 5-15% deviations, "Low" for <5% or informational items
-   - description: specific, actionable explanation with business impact
-   - variance: numeric percentage change (positive or negative)
-   - Focus on: revenue drops, expense spikes, margin compression, seasonal patterns, cost overruns
-
-3. chartData: extract monthly revenue and expenses from CSV, organize chronologically
-
-4. expenseBreakdown: aggregate expenses into 5-10 meaningful categories with:
-   - category: descriptive business expense category
-   - amount: total for the period
-   - percentage: percentage of total expenses
-
-5. aiCommentary: write 3-4 sentences covering:
-   - Overall financial health assessment
-   - Top 2-3 key insights or risks
-   - Specific actionable recommendations
-   - Industry context where relevant
-
-CSV Content:
-${csvContent.slice(0, 50_000)}
-
-Return ONLY the JSON object, no markdown formatting, no explanations outside JSON.`;
-
-  const completion = await openai.chat.completions.create({
-    model: aiModel,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a precision financial analysis engine. Always return valid JSON matching the requested schema. Never include markdown code fences or explanatory text outside the JSON object.",
-      },
-      { role: "user", content: prompt },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.3,
-    max_tokens: 2500,
-  });
-
-  const content = completion.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("AI returned empty response");
-  }
-
-  const parsed: unknown = JSON.parse(content);
-  return n8nResponseSchema.parse(parsed);
+  return analyzeWithAihubmax(csvContent, fileName, aiApiKey, aiApiBaseUrl, aiModel);
 }
 
 // ── Multer configuration ──────────────────────────────────────────────────────
@@ -413,6 +350,45 @@ function parseCsvFinancials(filePath: string, reportId: string, originalName: st
 export function registerRoutes(httpServer: Server, app: Express): Server {
   app.use("/api", apiLimiter);
 
+  // ── POST /api/auth/login ────────────────────────────────────────────────────
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const body = req.body as { username?: string; password?: string } | undefined;
+      const username = body?.username;
+      const password = body?.password;
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required." });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password." });
+      }
+
+      const sessionKey = createSessionKey(user.id);
+      return res.json({
+        message: "Login successful.",
+        sessionKey,
+        user: { id: user.id, username: user.username },
+      });
+    } catch (error: unknown) {
+      console.error("[auth/login]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── POST /api/auth/logout ───────────────────────────────────────────────────
+  app.post("/api/auth/logout", (_req, res) => {
+    try {
+      return res.json({ message: "Logout successful. Discard your session key." });
+    } catch (error: unknown) {
+      console.error("[auth/logout]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
   // ── POST /api/upload-ledger ────────────────────────────────────────────────
   app.post("/api/upload-ledger", uploadLimiter, upload.single("file"), async (req, res) => {
     try {
@@ -420,7 +396,8 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
         return res.status(400).json({ message: "No CSV file uploaded." });
       }
 
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       const baseUrl =
         process.env.SERVER_BASE_URL ?? `http://localhost:${process.env.PORT ?? "5000"}`;
       const fileUrl = `${baseUrl}/api/files/${req.file.filename}`;
@@ -453,7 +430,7 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
         }).catch(async (dispatchErr: unknown) => {
           console.error("[n8n dispatch] Failed to send to n8n:", dispatchErr);
           try {
-            if (openai) {
+            if (aiApiKey) {
               const csvContent = fs.readFileSync(savedFilePath, "utf-8");
               const parsedResults = await analyzeWithAI(
                 csvContent,
@@ -473,7 +450,7 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
             await storage.updateReportStatus(report.id, "failed");
           }
         });
-      } else if (openai) {
+      } else if (aiApiKey) {
         // Use direct AI integration when N8N_WEBHOOK_URL is not set but AI_API_KEY is available
         setTimeout(() => {
           void (async () => {
@@ -547,7 +524,8 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
       }
 
       const report = await storage.getReportByFileName(safeFilename);
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       if (report && report.userId !== userId) {
         return res.status(403).json({ message: "Forbidden: Access denied." });
       }
@@ -586,9 +564,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── GET /api/reports/latest ────────────────────────────────────────────────
-  app.get("/api/reports/latest", async (req, res) => {
+  app.get("/api/reports/latest", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       const report = await storage.getLatestReportByUser(userId);
       if (!report) {
         return res.status(404).json({ message: "No reports found." });
@@ -602,9 +581,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── GET /api/reports ───────────────────────────────────────────────────────
-  app.get("/api/reports", async (req, res) => {
+  app.get("/api/reports", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       const limit = Math.min(Number(req.query.limit) || 50, 100);
       const offset = Number(req.query.offset) || 0;
       const reports = await storage.getReportsByUser(userId, limit, offset);
@@ -617,9 +597,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── GET /api/reports/search ───────────────────────────────────────────────
-  app.get("/api/reports/search", async (req, res) => {
+  app.get("/api/reports/search", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       const query = typeof req.query.q === "string" ? req.query.q : "";
       const minHealthScore = req.query.minScore ? Number(req.query.minScore) : undefined;
       const maxHealthScore = req.query.maxScore ? Number(req.query.maxScore) : undefined;
@@ -643,28 +624,17 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
     }
   });
 
-  // ── GET /api/reports/latest ────────────────────────────────────────────────
-  app.get("/api/reports/latest", async (req, res) => {
-    try {
-      const userId = DEFAULT_USER_ID;
-      const report = await storage.getLatestReportByUser(userId);
-      if (!report) {
-        return res.status(404).json({ message: "No reports found." });
-      }
-      return res.json(report);
-    } catch (error: unknown) {
-      console.error("[reports/latest]", error);
-      const { status, message } = toClientError(error);
-      return res.status(status).json({ message });
-    }
-  });
-
   // ── GET /api/reports/:id ───────────────────────────────────────────────────
-  app.get("/api/reports/:id", async (req, res) => {
+  app.get("/api/reports/:id", requireAuth, async (req, res) => {
     try {
-      const report = await storage.getReport(req.params.id);
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
+      const report = await storage.getReport(String(req.params.id));
       if (!report) {
         return res.status(404).json({ message: "Report not found." });
+      }
+      if (report.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden: Access denied." });
       }
       return res.json(report);
     } catch (error: unknown) {
@@ -675,21 +645,22 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── DELETE /api/reports/:id ───────────────────────────────────────────────
-  app.delete("/api/reports/:id", async (req, res) => {
+  app.delete("/api/reports/:id", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
-      const report = await storage.getReport(req.params.id);
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
+      const report = await storage.getReport(String(req.params.id));
       if (!report) {
         return res.status(404).json({ message: "Report not found." });
       }
       if (report.userId !== userId) {
         return res.status(403).json({ message: "Forbidden: Access denied." });
       }
-      const deleted = await storage.deleteReport(req.params.id);
+      const deleted = await storage.deleteReport(String(req.params.id));
       if (!deleted) {
         return res.status(404).json({ message: "Report not found." });
       }
-      return res.json({ message: "Report deleted successfully.", reportId: req.params.id });
+      return res.json({ message: "Report deleted successfully.", reportId: String(req.params.id) });
     } catch (error: unknown) {
       console.error("[reports/:id delete]", error);
       const { status, message } = toClientError(error);
@@ -698,9 +669,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── GET /api/stats ────────────────────────────────────────────────────────
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
       const stats = await storage.getUserStats(userId);
       return res.json(stats);
     } catch (error: unknown) {
@@ -711,10 +683,11 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
   });
 
   // ── GET /api/reports/export/:id ───────────────────────────────────────────
-  app.get("/api/reports/export/:id", async (req, res) => {
+  app.get("/api/reports/export/:id", requireAuth, async (req, res) => {
     try {
-      const userId = DEFAULT_USER_ID;
-      const report = await storage.getReport(req.params.id);
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id ?? DEFAULT_USER_ID;
+      const report = await storage.getReport(String(req.params.id));
       if (!report) {
         return res.status(404).json({ message: "Report not found." });
       }

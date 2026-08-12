@@ -13,9 +13,10 @@ import { createServer } from "http";
 
 import express from "express";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest"; // [FIX-T1] explicit vi import
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// [FIX-T1] Correct relative path — this file lives in server/, so storage is a sibling
+import { createSessionKey } from "./auth/session";
+
 vi.mock("./storage", () => ({
   storage: {
     createReport: vi.fn(),
@@ -27,11 +28,16 @@ vi.mock("./storage", () => ({
   },
 }));
 
-// Import after mock is set up
 import { registerRoutes } from "./routes";
 import { storage } from "./storage";
 
 const mockedStorage = vi.mocked(storage);
+
+const TEST_SESSION_KEY = createSessionKey("demo-user");
+
+function authHeaders(extra: Record<string, string> = {}) {
+  return { Authorization: `Bearer ${TEST_SESSION_KEY}`, ...extra };
+}
 
 // ── Webhook signature helper ──────────────────────────────────────────────────
 // Generates a valid x-n8n-signature header for a given payload,
@@ -86,7 +92,7 @@ describe("GET /api/reports", () => {
     mockedStorage.getReportsByUser.mockResolvedValue([mockReport]);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get("/api/reports");
+    const res = await request(app).get("/api/reports").set(authHeaders());
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body[0].id).toBe(mockReport.id);
@@ -96,7 +102,7 @@ describe("GET /api/reports", () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get("/api/reports");
+    const res = await request(app).get("/api/reports").set(authHeaders());
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
@@ -105,7 +111,7 @@ describe("GET /api/reports", () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
     const { app } = await buildTestApp();
 
-    await request(app).get("/api/reports?limit=10&offset=20");
+    await request(app).get("/api/reports?limit=10&offset=20").set(authHeaders());
     expect(mockedStorage.getReportsByUser).toHaveBeenCalledWith("demo-user", 10, 20);
   });
 
@@ -113,7 +119,7 @@ describe("GET /api/reports", () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
     const { app } = await buildTestApp();
 
-    await request(app).get("/api/reports?limit=9999");
+    await request(app).get("/api/reports?limit=9999").set(authHeaders());
     expect(mockedStorage.getReportsByUser).toHaveBeenCalledWith("demo-user", 100, 0);
   });
 });
@@ -130,7 +136,7 @@ describe("GET /api/reports/:id", () => {
     mockedStorage.getReport.mockResolvedValue(mockReport);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get(`/api/reports/${mockReport.id}`);
+    const res = await request(app).get(`/api/reports/${mockReport.id}`).set(authHeaders());
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(mockReport.id);
   });
@@ -139,7 +145,7 @@ describe("GET /api/reports/:id", () => {
     mockedStorage.getReport.mockResolvedValue(undefined);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get("/api/reports/nonexistent-id");
+    const res = await request(app).get("/api/reports/nonexistent-id").set(authHeaders());
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty("message");
   });
@@ -157,7 +163,7 @@ describe("GET /api/reports/latest", () => {
     mockedStorage.getLatestReportByUser.mockResolvedValue(mockReport);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get("/api/reports/latest");
+    const res = await request(app).get("/api/reports/latest").set(authHeaders());
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(mockReport.id);
   });
@@ -166,7 +172,7 @@ describe("GET /api/reports/latest", () => {
     mockedStorage.getLatestReportByUser.mockResolvedValue(undefined);
     const { app } = await buildTestApp();
 
-    const res = await request(app).get("/api/reports/latest");
+    const res = await request(app).get("/api/reports/latest").set(authHeaders());
     expect(res.status).toBe(404);
   });
 });

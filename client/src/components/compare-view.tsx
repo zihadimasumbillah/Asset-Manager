@@ -45,19 +45,27 @@ export const CompareView = memo(function CompareView({ reports, onClear }: Compa
       ? Math.round(totalRevenue / report.chartData.length)
       : 0;
 
+    const createdAtLabel = report.createdAt
+      ? new Date(report.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : null;
+
     return (
-      <Card className="h-full">
+      <Card className="h-full min-h-0">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle
               className="text-sm font-medium truncate flex-1"
               title={report.fileName || undefined}
             >
               {report.fileName || "Untitled"}
             </CardTitle>
-            <span className="text-xs text-muted-foreground ml-2">
-              {report.createdAt && new Date(report.createdAt).toLocaleDateString()}
-            </span>
+            {createdAtLabel && (
+              <span className="text-xs text-muted-foreground shrink-0">{createdAtLabel}</span>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -82,12 +90,16 @@ export const CompareView = memo(function CompareView({ reports, onClear }: Compa
             </div>
           </div>
           {report.status === "completed" && report.chartData && report.chartData.length > 0 && (
-            <RevenueExpensesChart data={report.chartData} />
+            <div className="min-h-0">
+              <RevenueExpensesChart data={report.chartData} />
+            </div>
           )}
           {report.status === "completed" &&
             report.expenseBreakdown &&
             report.expenseBreakdown.length > 0 && (
-              <ExpenseBreakdownChart data={report.expenseBreakdown} />
+              <div className="min-h-0">
+                <ExpenseBreakdownChart data={report.expenseBreakdown} />
+              </div>
             )}
           {report.anomalies && report.anomalies.length > 0 && (
             <AnomalyFeed anomalies={report.anomalies} />

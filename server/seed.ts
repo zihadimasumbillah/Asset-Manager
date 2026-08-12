@@ -1,6 +1,8 @@
 import { storage } from "./storage";
 
 const DEMO_USER_ID = "demo-user";
+const DEMO_USERNAME = "demo";
+const DEMO_PASSWORD = "demo-password";
 
 const regionalReports = [
   {
@@ -874,7 +876,22 @@ const regionalReports = [
 
 export async function seedDatabase() {
   try {
-    const existing = await storage.getReportsByUser(DEMO_USER_ID);
+    const environment = process.env.NODE_ENV || "development";
+    const seedUserId = process.env.SEED_USER_ID || DEMO_USER_ID;
+
+    if (environment === "production") {
+      return;
+    }
+
+    let demoUser = await storage.getUserByUsername(DEMO_USERNAME);
+    if (!demoUser) {
+      demoUser = await storage.createUser({
+        username: DEMO_USERNAME,
+        password: DEMO_PASSWORD,
+      });
+    }
+
+    const existing = await storage.getReportsByUser(seedUserId);
     if (existing.length > 0) {
       return;
     }
@@ -898,7 +915,7 @@ export async function seedDatabase() {
       }));
 
       await storage.createReport({
-        userId: DEMO_USER_ID,
+        userId: seedUserId,
         status: "completed",
         healthScore: Math.max(0, Math.min(100, report.healthScore)),
         anomalies: report.anomalies,

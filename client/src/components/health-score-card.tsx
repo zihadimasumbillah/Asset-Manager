@@ -2,12 +2,10 @@ import { motion } from "framer-motion";
 import { HeartPulse } from "lucide-react";
 import { memo } from "react";
 
-import { HealthScore3D } from "@/components/3d/health-score-3d";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface HealthScoreCardProps {
   score: number | null;
-  use3D?: boolean;
 }
 
 function getScoreColor(score: number): string {
@@ -29,32 +27,7 @@ function getScoreRingColor(score: number): string {
   return "hsl(var(--destructive))";
 }
 
-export const HealthScoreCard = memo(function HealthScoreCard({
-  score,
-  use3D = true,
-}: HealthScoreCardProps) {
-  if (score !== null && use3D) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <HeartPulse className="w-4 h-4 text-primary" />
-            Financial Health Score
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-3">
-            <HealthScore3D score={score} />
-            <span className={`text-sm font-medium ${getScoreColor(score)}`}>{score}/100</span>
-            <span className={`text-sm font-medium ${getScoreColor(score)}`}>
-              {getScoreLabel(score)}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+export const HealthScoreCard = memo(function HealthScoreCard({ score }: HealthScoreCardProps) {
   const circumference = 2 * Math.PI * 54;
   const offset = score !== null ? circumference - (score / 100) * circumference : circumference;
 

@@ -1,5 +1,7 @@
 import { QueryClient, type QueryFunction } from "@tanstack/react-query";
 
+import { ensureSessionKey } from "./auth";
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -8,9 +10,15 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(method: string, url: string, data?: unknown): Promise<Response> {
+  const sessionKey = await ensureSessionKey();
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  if (sessionKey) {
+    headers["Authorization"] = `Bearer ${sessionKey}`;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -24,10 +32,6 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // [FIX-M2] The URL is always the first element of the queryKey.
-    // Additional elements are cache-differentiation keys, NOT URL path segments.
-    // The previous queryKey.join("/") produced wrong URLs for multi-element keys
-    // and was typed as `readonly unknown[]` — entirely unsafe.
     const url = queryKey[0];
     if (typeof url !== "string") {
       throw new Error(
@@ -35,7 +39,14 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       );
     }
 
+    const sessionKey = await ensureSessionKey();
+    const headers: Record<string, string> = {};
+    if (sessionKey) {
+      headers["Authorization"] = `Bearer ${sessionKey}`;
+    }
+
     const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 
