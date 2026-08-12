@@ -1,21 +1,27 @@
 import { createServer } from "http";
 
-import express from "express";
+import express, { json, urlencoded } from "express";
 
 import { registerRoutes } from "../server/routes.js";
 
 const app = express();
 const httpServer = createServer(app);
 
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: Buffer;
+  }
+}
+
 app.use(
-  express.json({
-    verify: (req: any, _res, buf) => {
+  json({
+    verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   })
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(urlencoded({ extended: false }));
 
 registerRoutes(httpServer, app);
 

@@ -116,14 +116,17 @@ export class MemStorage implements IStorage {
   private reportsMap = new Map<string, FinancialReport>();
 
   async getUser(id: string): Promise<User | undefined> {
+    await Promise.resolve();
     return this.usersMap.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    await Promise.resolve();
     return Array.from(this.usersMap.values()).find((u) => u.username === username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    await Promise.resolve();
     const id = crypto.randomUUID();
     const user: User = { id, ...insertUser };
     this.usersMap.set(id, user);
@@ -131,6 +134,7 @@ export class MemStorage implements IStorage {
   }
 
   async createReport(report: InsertFinancialReport): Promise<FinancialReport> {
+    await Promise.resolve();
     const id = crypto.randomUUID();
     const newReport: FinancialReport = {
       id,
@@ -138,9 +142,9 @@ export class MemStorage implements IStorage {
       status: report.status ?? "processing",
       fileName: report.fileName ?? null,
       healthScore: report.healthScore ?? null,
-      anomalies: (report.anomalies as any) ?? null,
-      chartData: (report.chartData as any) ?? null,
-      expenseBreakdown: (report.expenseBreakdown as any) ?? null,
+      anomalies: report.anomalies as Anomaly[] | null ?? null,
+      chartData: report.chartData as ChartDataPoint[] | null ?? null,
+      expenseBreakdown: report.expenseBreakdown as ExpenseBreakdown[] | null ?? null,
       aiCommentary: report.aiCommentary ?? null,
       createdAt: new Date(),
     };
@@ -149,14 +153,17 @@ export class MemStorage implements IStorage {
   }
 
   async getReport(id: string): Promise<FinancialReport | undefined> {
+    await Promise.resolve();
     return this.reportsMap.get(id);
   }
 
   async getReportByFileName(fileName: string): Promise<FinancialReport | undefined> {
+    await Promise.resolve();
     return Array.from(this.reportsMap.values()).find((r) => r.fileName === fileName);
   }
 
   async getLatestReportByUser(userId: string): Promise<FinancialReport | undefined> {
+    await Promise.resolve();
     const userReports = Array.from(this.reportsMap.values())
       .filter((r) => r.userId === userId)
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
@@ -164,6 +171,7 @@ export class MemStorage implements IStorage {
   }
 
   async getReportsByUser(userId: string, limit = 50, offset = 0): Promise<FinancialReport[]> {
+    await Promise.resolve();
     return Array.from(this.reportsMap.values())
       .filter((r) => r.userId === userId)
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
@@ -174,15 +182,16 @@ export class MemStorage implements IStorage {
     reportId: string,
     data: N8nResponse
   ): Promise<FinancialReport | undefined> {
+    await Promise.resolve();
     const report = this.reportsMap.get(reportId);
     if (!report) return undefined;
     const updated: FinancialReport = {
       ...report,
       status: "completed",
       healthScore: data.healthScore,
-      anomalies: data.anomalies as any,
-      chartData: data.chartData as any,
-      expenseBreakdown: data.expenseBreakdown as any,
+      anomalies: data.anomalies,
+      chartData: data.chartData,
+      expenseBreakdown: data.expenseBreakdown,
       aiCommentary: data.aiCommentary ?? null,
     };
     this.reportsMap.set(reportId, updated);
@@ -190,6 +199,7 @@ export class MemStorage implements IStorage {
   }
 
   async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
+    await Promise.resolve();
     const report = this.reportsMap.get(reportId);
     if (report) {
       report.status = status;

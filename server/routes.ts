@@ -6,8 +6,9 @@ import os from "os";
 import path from "path";
 
 import type { Express } from "express";
-import rateLimit from "express-rate-limit";
-import multer from "multer";
+import { rateLimit } from "express-rate-limit";
+import multer, { diskStorage } from "multer";
+import { OpenAI } from "openai";
 
 import {
   n8nResponseSchema,
@@ -29,10 +30,64 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// ── AI Configuration ──────────────────────────────────────────────────────────
+
+const aiApiKey = process.env.AI_API_KEY;
+const aiApiBaseUrl = process.env.AI_API_BASE_URL || "https://api.openai.com/v1";
+const aiModel = process.env.AI_MODEL || "gpt-4o-mini";
+
+const openai = aiApiKey
+  ? new OpenAI({ apiKey: aiApiKey, baseURL: aiApiBaseUrl })
+  : null;
+
+async function analyzeWithAI(csvContent: string, _fileName: string): Promise<N8nResponse> {
+  if (!openai) {
+    throw new Error("AI_API_KEY is not configured");
+  }
+
+  const prompt = `You are a financial analyst AI. Analyze the following CSV financial data and return a JSON response with:
+- healthScore (0-100 integer)
+- anomalies (array of objects with severity: "High"|"Medium"|"Low", description: string, variance: number)
+- chartData (array of objects with month, revenue, expenses)
+- expenseBreakdown (array of objects with category, amount, percentage)
+- aiCommentary (string with 2-3 sentences of financial insights)
+
+CSV Content:
+${csvContent.slice(0, 50_000)}
+
+Return ONLY valid JSON matching this schema:
+{
+  "healthScore": number,
+  "anomalies": [{"severity": "High|Medium|Low", "description": "string", "variance": number}],
+  "chartData": [{"month": "string", "revenue": number, "expenses": number}],
+  "expenseBreakdown": [{"category": "string", "amount": number, "percentage": number}],
+  "aiCommentary": "string"
+}`;
+
+  const completion = await openai.chat.completions.create({
+    model: aiModel,
+    messages: [
+      { role: "system", content: "You are a financial analysis AI. Always return valid JSON." },
+      { role: "user", content: prompt },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("AI returned empty response");
+  }
+
+  const parsed: unknown = JSON.parse(content);
+  return n8nResponseSchema.parse(parsed);
+}
+
 // ── Multer configuration ──────────────────────────────────────────────────────
 
 const upload = multer({
-  storage: multer.diskStorage({
+  storage: diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadDir),
     filename: (_req, _file, cb) => {
       const uniqueName = `${crypto.randomUUID()}.csv`;
@@ -346,19 +401,49 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
         }).catch(async (dispatchErr: unknown) => {
           console.error("[n8n dispatch] Failed to send to n8n:", dispatchErr);
           try {
-            const parsedResults = parseCsvFinancials(
-              savedFilePath,
-              report.id,
-              req.file?.originalname || "Uploaded CSV"
-            );
-            await storage.updateReportWithResults(report.id, parsedResults);
+            if (openai) {
+              const csvContent = fs.readFileSync(savedFilePath, "utf-8");
+              const parsedResults = await analyzeWithAI(csvContent, req.file?.originalname || "Uploaded CSV");
+              await storage.updateReportWithResults(report.id, parsedResults);
+            } else {
+              const parsedResults = parseCsvFinancials(
+                savedFilePath,
+                report.id,
+                req.file?.originalname || "Uploaded CSV"
+              );
+              await storage.updateReportWithResults(report.id, parsedResults);
+            }
           } catch (dbErr: unknown) {
             console.error("[n8n fallback error]:", dbErr);
             await storage.updateReportStatus(report.id, "failed");
           }
         });
+      } else if (openai) {
+        // Use direct AI integration when N8N_WEBHOOK_URL is not set but AI_API_KEY is available
+        setTimeout(() => {
+          void (async () => {
+            try {
+              const csvContent = fs.readFileSync(savedFilePath, "utf-8");
+              const parsedResults = await analyzeWithAI(csvContent, req.file?.originalname || "Uploaded CSV");
+              await storage.updateReportWithResults(report.id, parsedResults);
+            } catch (aiErr: unknown) {
+              console.error("[direct AI analysis error]:", aiErr);
+              try {
+                const fallbackResults = parseCsvFinancials(
+                  savedFilePath,
+                  report.id,
+                  req.file?.originalname || "Uploaded CSV"
+                );
+                await storage.updateReportWithResults(report.id, fallbackResults);
+              } catch (fallbackErr: unknown) {
+                console.error("[fallback CSV analysis error]:", fallbackErr);
+                await storage.updateReportStatus(report.id, "failed");
+              }
+            }
+          })();
+        }, 1500);
       } else {
-        // Auto-process CSV file locally when N8N_WEBHOOK_URL is not set
+        // Auto-process CSV file locally when neither N8N_WEBHOOK_URL nor AI_API_KEY is set
         setTimeout(() => {
           void (async () => {
             try {

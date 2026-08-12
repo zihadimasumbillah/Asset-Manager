@@ -1,6 +1,6 @@
 import { createServer } from "http";
 
-import express, { type NextFunction, type Request, type Response } from "express";
+import express, { json, urlencoded, type NextFunction, type Request, type Response } from "express";
 
 import { registerRoutes } from "./routes";
 import { seedDatabase } from "./seed";
@@ -18,7 +18,7 @@ declare module "http" {
 }
 
 app.use(
-  express.json({
+  json({
     verify: (req, _res, buf) => {
       // Store the raw request body so the webhook middleware can compute HMAC over it.
       req.rawBody = buf;
@@ -26,7 +26,7 @@ app.use(
   })
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(urlencoded({ extended: false }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -36,6 +36,7 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
+  // eslint-disable-next-line no-console
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
