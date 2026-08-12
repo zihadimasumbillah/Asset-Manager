@@ -72,11 +72,7 @@ app.use((req, res, next) => {
 void (async () => {
   registerRoutes(httpServer, app);
 
-  // [FIX-H3] Only seed demo data in non-production environments.
-  // Seeding in production adds latency to every cold start and risks polluting real data.
-  if (process.env.NODE_ENV !== "production") {
-    await seedDatabase();
-  }
+  await seedDatabase();
 
   // [FIX-C4] Global error handler — uses toClientError pattern.
   // err.status/statusCode are set by Express/multer for known HTTP errors (e.g., 413 Too Large).

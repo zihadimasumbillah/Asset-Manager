@@ -11,7 +11,7 @@ import {
   type User,
   financialReports,
   users,
-} from "@shared/schema";
+} from "../shared/schema";
 
 import { db } from "./db.js";
 
