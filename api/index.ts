@@ -25,4 +25,18 @@ app.use(urlencoded({ extended: false }));
 
 registerRoutes(httpServer, app);
 
+let seeded = false;
+app.use(async (_req, _res, next) => {
+  if (!seeded) {
+    seeded = true;
+    try {
+      const { seedDatabase } = await import("../server/seed.js");
+      await seedDatabase();
+    } catch {
+      // ignore seed errors
+    }
+  }
+  next();
+});
+
 export default app;

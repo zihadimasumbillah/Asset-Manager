@@ -548,21 +548,6 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
     }
   });
 
-  // ── GET /api/reports/:id ───────────────────────────────────────────────────
-  app.get("/api/reports/:id", async (req, res) => {
-    try {
-      const report = await storage.getReport(req.params.id);
-      if (!report) {
-        return res.status(404).json({ message: "Report not found." });
-      }
-      return res.json(report);
-    } catch (error: unknown) {
-      console.error("[reports/:id]", error);
-      const { status, message } = toClientError(error);
-      return res.status(status).json({ message });
-    }
-  });
-
   // ── GET /api/reports ───────────────────────────────────────────────────────
   app.get("/api/reports", async (req, res) => {
     try {
@@ -573,6 +558,64 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
       return res.json(reports);
     } catch (error: unknown) {
       console.error("[reports]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/reports/search ───────────────────────────────────────────────
+  app.get("/api/reports/search", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const query = typeof req.query.q === "string" ? req.query.q : "";
+      const minHealthScore = req.query.minScore ? Number(req.query.minScore) : undefined;
+      const maxHealthScore = req.query.maxScore ? Number(req.query.maxScore) : undefined;
+      const status = req.query.status as ReportStatus | undefined;
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const offset = Number(req.query.offset) || 0;
+      const reports = await storage.searchReports(
+        userId,
+        query,
+        minHealthScore,
+        maxHealthScore,
+        status,
+        limit,
+        offset
+      );
+      return res.json(reports);
+    } catch (error: unknown) {
+      console.error("[reports/search]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/reports/latest ────────────────────────────────────────────────
+  app.get("/api/reports/latest", async (req, res) => {
+    try {
+      const userId = DEFAULT_USER_ID;
+      const report = await storage.getLatestReportByUser(userId);
+      if (!report) {
+        return res.status(404).json({ message: "No reports found." });
+      }
+      return res.json(report);
+    } catch (error: unknown) {
+      console.error("[reports/latest]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
+  // ── GET /api/reports/:id ───────────────────────────────────────────────────
+  app.get("/api/reports/:id", async (req, res) => {
+    try {
+      const report = await storage.getReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found." });
+      }
+      return res.json(report);
+    } catch (error: unknown) {
+      console.error("[reports/:id]", error);
       const { status, message } = toClientError(error);
       return res.status(status).json({ message });
     }
@@ -609,33 +652,6 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
       return res.json(stats);
     } catch (error: unknown) {
       console.error("[stats]", error);
-      const { status, message } = toClientError(error);
-      return res.status(status).json({ message });
-    }
-  });
-
-  // ── GET /api/reports/search ───────────────────────────────────────────────
-  app.get("/api/reports/search", async (req, res) => {
-    try {
-      const userId = DEFAULT_USER_ID;
-      const query = typeof req.query.q === "string" ? req.query.q : "";
-      const minHealthScore = req.query.minScore ? Number(req.query.minScore) : undefined;
-      const maxHealthScore = req.query.maxScore ? Number(req.query.maxScore) : undefined;
-      const status = req.query.status as ReportStatus | undefined;
-      const limit = Math.min(Number(req.query.limit) || 50, 100);
-      const offset = Number(req.query.offset) || 0;
-      const reports = await storage.searchReports(
-        userId,
-        query,
-        minHealthScore,
-        maxHealthScore,
-        status,
-        limit,
-        offset
-      );
-      return res.json(reports);
-    } catch (error: unknown) {
-      console.error("[reports/search]", error);
       const { status, message } = toClientError(error);
       return res.status(status).json({ message });
     }
