@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "./db.ts";
+import { db } from "./db.js";
 import {
   type FinancialReport,
   type InsertFinancialReport,
@@ -12,7 +12,7 @@ import {
   type User,
   financialReports,
   users,
-} from "../shared/schema.ts";
+} from "../shared/schema.js";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
