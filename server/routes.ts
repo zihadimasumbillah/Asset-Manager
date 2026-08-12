@@ -15,7 +15,7 @@ import {
   type Anomaly,
   type ChartDataPoint,
   type ExpenseBreakdown,
-} from "../shared/schema.ts";
+} from "../shared/schema.js";
 import { verifyN8nSignature } from "./middleware/verifyN8nSignature.js";
 import { storage } from "./storage.js";
 import { toClientError } from "./utils/errors.js";
