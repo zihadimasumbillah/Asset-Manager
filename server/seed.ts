@@ -1,6 +1,5 @@
 import { storage } from "./storage";
 
-const DEMO_USER_ID = "demo-user";
 const DEMO_USERNAME = "demo";
 const DEMO_PASSWORD = "demo-password";
 
@@ -890,7 +889,7 @@ export async function seedDatabase() {
       });
     }
 
-    const existing = await storage.getReportsByUser(DEMO_USER_ID);
+    const existing = await storage.getReportsByUser(demoUser.id);
     if (existing.length > 0) {
       return;
     }
@@ -914,7 +913,7 @@ export async function seedDatabase() {
       }));
 
       await storage.createReport({
-        userId: DEMO_USER_ID,
+        userId: demoUser.id,
         status: "completed",
         healthScore: Math.max(0, Math.min(100, report.healthScore)),
         anomalies: report.anomalies,
