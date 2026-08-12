@@ -9,6 +9,21 @@ export function getSessionKey(): string | null {
   return null;
 }
 
+export async function validateSessionKey(key: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/auth/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createSession(username: string, password: string): Promise<string> {
   const res = await fetch("/api/auth/login", {
     method: "POST",
@@ -18,7 +33,9 @@ export async function createSession(username: string, password: string): Promise
   });
 
   if (!res.ok) {
-    const err = (await res.json().catch(() => ({ message: "Login failed" }))) as { message?: string };
+    const err = (await res.json().catch(() => ({ message: "Login failed" }))) as {
+      message?: string;
+    };
     throw new Error(err.message || "Login failed");
   }
 
@@ -30,15 +47,20 @@ export async function createSession(username: string, password: string): Promise
 }
 
 export async function ensureSessionKey(): Promise<string | null> {
-  const key = getSessionKey();
-  if (!key) {
-    try {
-      return await createSession("demo", "demo-password");
-    } catch {
-      return null;
+  const stored = getSessionKey();
+  if (stored) {
+    const isValid = await validateSessionKey(stored);
+    if (isValid) {
+      return stored;
     }
+    clearSession();
   }
-  return key;
+
+  try {
+    return await createSession("demo", "demo-password");
+  } catch {
+    return null;
+  }
 }
 
 export function clearSession(): void {

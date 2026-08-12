@@ -11,11 +11,13 @@
 import crypto from "crypto";
 import { createServer } from "http";
 
-import express from "express";
+import express, { json, urlencoded } from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSessionKey } from "./auth/session";
+import { registerRoutes } from "./routes";
+import { storage } from "./storage";
 
 vi.mock("./storage", () => ({
   storage: {
@@ -28,14 +30,11 @@ vi.mock("./storage", () => ({
   },
 }));
 
-import { registerRoutes } from "./routes";
-import { storage } from "./storage";
-
 const mockedStorage = vi.mocked(storage);
 
 const TEST_SESSION_KEY = createSessionKey("demo-user");
 
-function authHeaders(extra: Record<string, string> = {}) {
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return { Authorization: `Bearer ${TEST_SESSION_KEY}`, ...extra };
 }
 
@@ -50,17 +49,16 @@ function signPayload(payload: unknown): string {
 }
 
 // ── Test app factory ──────────────────────────────────────────────────────────
-async function buildTestApp() {
+function buildTestApp() {
   const app = express();
-  // Mirror the rawBody capture from index.ts — required for HMAC verification
   app.use(
-    express.json({
+    json({
       verify: (req, _res, buf) => {
         (req as express.Request & { rawBody: Buffer }).rawBody = buf;
       },
     })
   );
-  app.use(express.urlencoded({ extended: false }));
+  app.use(urlencoded({ extended: false }));
   const httpServer = createServer(app);
   registerRoutes(httpServer, app);
   return { app, httpServer };
@@ -68,7 +66,7 @@ async function buildTestApp() {
 
 // ── Fixture data ──────────────────────────────────────────────────────────────
 const mockReport = {
-  id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", // valid UUID
+  id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
   userId: "demo-user",
   status: "completed" as const,
   healthScore: 82,
@@ -90,17 +88,17 @@ describe("GET /api/reports", () => {
 
   it("returns reports array for a user", async () => {
     mockedStorage.getReportsByUser.mockResolvedValue([mockReport]);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get("/api/reports").set(authHeaders());
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0].id).toBe(mockReport.id);
+    expect((res.body as Array<{ id: string }>)[0]?.id).toBe(mockReport.id);
   });
 
   it("returns empty array when no reports exist", async () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get("/api/reports").set(authHeaders());
     expect(res.status).toBe(200);
@@ -109,17 +107,19 @@ describe("GET /api/reports", () => {
 
   it("passes limit and offset to storage", async () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     await request(app).get("/api/reports?limit=10&offset=20").set(authHeaders());
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockedStorage.getReportsByUser).toHaveBeenCalledWith("demo-user", 10, 20);
   });
 
   it("caps limit at 100", async () => {
     mockedStorage.getReportsByUser.mockResolvedValue([]);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     await request(app).get("/api/reports?limit=9999").set(authHeaders());
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockedStorage.getReportsByUser).toHaveBeenCalledWith("demo-user", 100, 0);
   });
 });
@@ -134,16 +134,16 @@ describe("GET /api/reports/:id", () => {
 
   it("returns 200 with report when found", async () => {
     mockedStorage.getReport.mockResolvedValue(mockReport);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get(`/api/reports/${mockReport.id}`).set(authHeaders());
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(mockReport.id);
+    expect((res.body as { id: string } | undefined)?.id).toBe(mockReport.id);
   });
 
   it("returns 404 when report does not exist", async () => {
     mockedStorage.getReport.mockResolvedValue(undefined);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get("/api/reports/nonexistent-id").set(authHeaders());
     expect(res.status).toBe(404);
@@ -161,16 +161,16 @@ describe("GET /api/reports/latest", () => {
 
   it("returns 200 with the latest report", async () => {
     mockedStorage.getLatestReportByUser.mockResolvedValue(mockReport);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get("/api/reports/latest").set(authHeaders());
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(mockReport.id);
+    expect((res.body as { id: string } | undefined)?.id).toBe(mockReport.id);
   });
 
   it("returns 404 when no reports exist for user", async () => {
     mockedStorage.getLatestReportByUser.mockResolvedValue(undefined);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app).get("/api/reports/latest").set(authHeaders());
     expect(res.status).toBe(404);
@@ -186,7 +186,7 @@ describe("POST /api/webhook/n8n-response", () => {
   });
 
   const validWebhookPayload = {
-    reportId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", // valid UUID
+    reportId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     healthScore: 75,
     anomalies: [{ severity: "Medium", description: "Some anomaly", variance: 10 }],
     chartData: [{ month: "Jan", revenue: 100000, expenses: 80000 }],
@@ -196,7 +196,7 @@ describe("POST /api/webhook/n8n-response", () => {
 
   it("returns 200 for a valid signed webhook payload", async () => {
     mockedStorage.updateReportWithResults.mockResolvedValue(mockReport);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
 
     const res = await request(app)
       .post("/api/webhook/n8n-response")
@@ -205,6 +205,7 @@ describe("POST /api/webhook/n8n-response", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("reportId");
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockedStorage.updateReportWithResults).toHaveBeenCalledWith(
       validWebhookPayload.reportId,
       expect.objectContaining({ healthScore: 75 })
@@ -212,14 +213,14 @@ describe("POST /api/webhook/n8n-response", () => {
   });
 
   it("returns 401 when x-n8n-signature header is missing", async () => {
-    const { app } = await buildTestApp();
-    const res = await request(app).post("/api/webhook/n8n-response").send(validWebhookPayload); // no signature header
+    const { app } = buildTestApp();
+    const res = await request(app).post("/api/webhook/n8n-response").send(validWebhookPayload);
 
     expect(res.status).toBe(401);
   });
 
   it("returns 401 when x-n8n-signature is invalid", async () => {
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const res = await request(app)
       .post("/api/webhook/n8n-response")
       .set("x-n8n-signature", "sha256=deadbeef")
@@ -229,7 +230,7 @@ describe("POST /api/webhook/n8n-response", () => {
   });
 
   it("returns 400 for invalid payload (missing required fields)", async () => {
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const badPayload = { reportId: "not-a-uuid" };
 
     const res = await request(app)
@@ -242,7 +243,7 @@ describe("POST /api/webhook/n8n-response", () => {
   });
 
   it("returns 400 when healthScore exceeds 100", async () => {
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const badPayload = { ...validWebhookPayload, healthScore: 101 };
 
     const res = await request(app)
@@ -255,7 +256,7 @@ describe("POST /api/webhook/n8n-response", () => {
 
   it("returns 404 when reportId does not match any report", async () => {
     mockedStorage.updateReportWithResults.mockResolvedValue(undefined);
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const notFoundPayload = {
       ...validWebhookPayload,
       reportId: "b1ffbc99-9c0b-4ef8-bb6d-6bb9bd380a22",
@@ -275,19 +276,15 @@ describe("POST /api/webhook/n8n-response", () => {
 // ─────────────────────────────────────────────────────────────
 describe("GET /api/files/:filename", () => {
   it("returns 404 for a non-existent file", async () => {
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const res = await request(app).get("/api/files/does-not-exist.csv");
     expect(res.status).toBe(404);
   });
 
-  // [FIX-C1] Regression test — path traversal must be blocked.
-  // This test PASSES after the path traversal fix is applied.
   it("blocks path traversal attempts (should return 400 or 404, never 200)", async () => {
-    const { app } = await buildTestApp();
+    const { app } = buildTestApp();
     const res = await request(app).get("/api/files/..%2F..%2Fpackage.json");
     expect(res.status).not.toBe(200);
-    // After the fix, path.basename strips ".." — resolves to "package.json" which
-    // does not exist in the uploads/ dir, so we get 404
     expect([400, 404]).toContain(res.status);
   });
 });

@@ -378,6 +378,21 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
     }
   });
 
+  // ── POST /api/auth/validate ─────────────────────────────────────────────────
+  app.post("/api/auth/validate", requireAuth, (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      return res.json({
+        valid: true,
+        user: authReq.user ? { id: authReq.user.id, username: authReq.user.username } : null,
+      });
+    } catch (error: unknown) {
+      console.error("[auth/validate]", error);
+      const { status, message } = toClientError(error);
+      return res.status(status).json({ message });
+    }
+  });
+
   // ── POST /api/auth/logout ───────────────────────────────────────────────────
   app.post("/api/auth/logout", (_req, res) => {
     try {
