@@ -97,12 +97,19 @@ export const ReportHistory = memo(function ReportHistory({
       result = result.filter((r) => r.status === statusFilter);
     }
 
+    const toTime = (value: string | Date | null | undefined) => {
+      if (!value) return 0;
+      const date = value instanceof Date ? value : new Date(value);
+      const time = date.getTime();
+      return Number.isFinite(time) ? time : 0;
+    };
+
     result.sort((a, b) => {
       if (sortBy === "newest") {
-        return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+        return toTime(b.createdAt) - toTime(a.createdAt);
       }
       if (sortBy === "oldest") {
-        return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+        return toTime(a.createdAt) - toTime(b.createdAt);
       }
       if (sortBy === "health-high") {
         return (b.healthScore ?? -1) - (a.healthScore ?? -1);
