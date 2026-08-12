@@ -2,10 +2,12 @@ import { motion } from "framer-motion";
 import { HeartPulse } from "lucide-react";
 import { memo } from "react";
 
+import { HealthScore3D } from "@/components/3d/health-score-3d";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface HealthScoreCardProps {
   score: number | null;
+  use3D?: boolean;
 }
 
 function getScoreColor(score: number): string {
@@ -27,7 +29,32 @@ function getScoreRingColor(score: number): string {
   return "hsl(var(--destructive))";
 }
 
-export const HealthScoreCard = memo(function HealthScoreCard({ score }: HealthScoreCardProps) {
+export const HealthScoreCard = memo(function HealthScoreCard({
+  score,
+  use3D = true,
+}: HealthScoreCardProps) {
+  if (score !== null && use3D) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <HeartPulse className="w-4 h-4 text-primary" />
+            Financial Health Score
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-3">
+            <HealthScore3D score={score} />
+            <span className={`text-sm font-medium ${getScoreColor(score)}`}>{score}/100</span>
+            <span className={`text-sm font-medium ${getScoreColor(score)}`}>
+              {getScoreLabel(score)}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const circumference = 2 * Math.PI * 54;
   const offset = score !== null ? circumference - (score / 100) * circumference : circumference;
 
@@ -72,17 +99,13 @@ export const HealthScoreCard = memo(function HealthScoreCard({ score }: HealthSc
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5, duration: 0.4 }}
-                  data-testid="text-health-score"
                 >
                   {score}
                 </motion.span>
                 <span className="text-xs text-muted-foreground">/ 100</span>
               </div>
             </div>
-            <span
-              className={`text-sm font-medium ${getScoreColor(score)}`}
-              data-testid="text-health-label"
-            >
+            <span className={`text-sm font-medium ${getScoreColor(score)}`}>
               {getScoreLabel(score)}
             </span>
           </div>

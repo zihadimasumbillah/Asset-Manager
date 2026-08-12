@@ -140,21 +140,23 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      <header className="border-b border-border/60 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-[1440px] mx-auto px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight" data-testid="text-app-title">
+              <h1 className="text-xl font-bold tracking-tight" data-testid="text-app-title">
                 FinPulse
               </h1>
-              <p className="text-xs text-muted-foreground">Financial Health Dashboard</p>
+              <p className="text-xs text-muted-foreground font-medium">
+                Financial Health Dashboard
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Shield className="w-4 h-4" />
               <span>AI-Powered Analysis</span>
@@ -167,10 +169,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-6">
+      <main className="max-w-[1440px] mx-auto px-6 py-8">
         {isProcessing && <ProcessingOverlay />}
 
-        <div className="mb-6">
+        <div className="mb-8">
           <StatsCards stats={stats} />
         </div>
 

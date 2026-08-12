@@ -5,7 +5,8 @@ import {
   Search,
   Trash2,
   Download,
-  GitCompare,
+  Circle,
+  CheckCircle2,
 } from "lucide-react";
 import { memo, useState, useMemo } from "react";
 
@@ -161,7 +162,7 @@ export const ReportHistory = memo(function ReportHistory({
           Report History
           {compareIds.length > 0 && (
             <Badge variant="default" className="ml-auto">
-              <GitCompare className="w-3 h-3 mr-1" />
+              <CheckCircle2 className="w-3 h-3 mr-1" />
               {compareIds.length}/2
             </Badge>
           )}
@@ -211,7 +212,7 @@ export const ReportHistory = memo(function ReportHistory({
               onClick={onClearCompare}
               data-testid="button-clear-compare"
             >
-              <GitCompare className="w-3 h-3 mr-1" />
+              <CheckCircle2 className="w-3 h-3 mr-1" />
               Clear Comparison
             </Button>
           )}
@@ -263,7 +264,11 @@ export const ReportHistory = memo(function ReportHistory({
                                 title={isCompareSelected ? "Remove from compare" : "Add to compare"}
                                 data-testid={`button-compare-${report.id}`}
                               >
-                                <GitCompare className="w-3.5 h-3.5" />
+                                {isCompareSelected ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Circle className="w-3.5 h-3.5" />
+                                )}
                               </button>
                               <button
                                 onClick={(e) => handleExport(e, report.id)}

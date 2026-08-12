@@ -44,34 +44,60 @@ async function analyzeWithAI(csvContent: string, _fileName: string): Promise<N8n
     throw new Error("AI_API_KEY is not configured");
   }
 
-  const prompt = `You are a financial analyst AI. Analyze the following CSV financial data and return a JSON response with:
-- healthScore (0-100 integer)
-- anomalies (array of objects with severity: "High"|"Medium"|"Low", description: string, variance: number)
-- chartData (array of objects with month, revenue, expenses)
-- expenseBreakdown (array of objects with category, amount, percentage)
-- aiCommentary (string with 2-3 sentences of financial insights)
+  const prompt = `You are a senior financial analyst AI specializing in small business health diagnostics and P&L anomaly detection. Analyze the following CSV financial data and return ONLY valid JSON matching this exact schema:
 
-CSV Content:
-${csvContent.slice(0, 50_000)}
-
-Return ONLY valid JSON matching this schema:
 {
   "healthScore": number,
   "anomalies": [{"severity": "High|Medium|Low", "description": "string", "variance": number}],
   "chartData": [{"month": "string", "revenue": number, "expenses": number}],
   "expenseBreakdown": [{"category": "string", "amount": number, "percentage": number}],
   "aiCommentary": "string"
-}`;
+}
+
+ANALYSIS RULES:
+1. healthScore: integer 0-100 based on:
+   - Revenue stability and growth trajectory (weight: 30)
+   - Expense control and margin preservation (weight: 25)
+   - Cash flow patterns and operational efficiency (weight: 25)
+   - Risk indicators and anomaly severity (weight: 20)
+
+2. anomalies: identify 3-6 significant financial anomalies with:
+   - severity: "High" for >15% deviations or critical cash flow issues, "Medium" for 5-15% deviations, "Low" for <5% or informational items
+   - description: specific, actionable explanation with business impact
+   - variance: numeric percentage change (positive or negative)
+   - Focus on: revenue drops, expense spikes, margin compression, seasonal patterns, cost overruns
+
+3. chartData: extract monthly revenue and expenses from CSV, organize chronologically
+
+4. expenseBreakdown: aggregate expenses into 5-10 meaningful categories with:
+   - category: descriptive business expense category
+   - amount: total for the period
+   - percentage: percentage of total expenses
+
+5. aiCommentary: write 3-4 sentences covering:
+   - Overall financial health assessment
+   - Top 2-3 key insights or risks
+   - Specific actionable recommendations
+   - Industry context where relevant
+
+CSV Content:
+${csvContent.slice(0, 50_000)}
+
+Return ONLY the JSON object, no markdown formatting, no explanations outside JSON.`;
 
   const completion = await openai.chat.completions.create({
     model: aiModel,
     messages: [
-      { role: "system", content: "You are a financial analysis AI. Always return valid JSON." },
+      {
+        role: "system",
+        content:
+          "You are a precision financial analysis engine. Always return valid JSON matching the requested schema. Never include markdown code fences or explanatory text outside the JSON object.",
+      },
       { role: "user", content: prompt },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.7,
-    max_tokens: 2000,
+    temperature: 0.3,
+    max_tokens: 2500,
   });
 
   const content = completion.choices[0]?.message?.content;
@@ -341,13 +367,40 @@ function parseCsvFinancials(filePath: string, reportId: string, originalName: st
       });
     }
 
+    const monthlyRevenueValues = chartData.map((d) => d.revenue);
+    const avgMargin =
+      totalRevenue > 0 ? Math.round(((totalRevenue - totalExpenses) / totalRevenue) * 100) : 0;
+
+    const topExpenseCategory =
+      expenseBreakdown.length > 0
+        ? expenseBreakdown.reduce(
+            (max, cat) => (cat.amount > max.amount ? cat : max),
+            expenseBreakdown[0]
+          )
+        : { category: "Operations", percentage: 0 };
+
+    const revenueGrowth =
+      monthlyRevenueValues.length > 1
+        ? Math.round(
+            ((monthlyRevenueValues[monthlyRevenueValues.length - 1] - monthlyRevenueValues[0]) /
+              monthlyRevenueValues[0]) *
+              100
+          )
+        : 0;
+
+    const commentary = `Financial analysis for uploaded statement "${originalName}": Processed ${chartData.length} monthly periods with total revenue of $${totalRevenue.toLocaleString()} and expenses of $${totalExpenses.toLocaleString()}, yielding a net margin of ${avgMargin}%. Revenue ${revenueGrowth >= 0 ? "grew" : "declined"} ${Math.abs(revenueGrowth)}% across the analyzed period. ${topExpenseCategory.category} represents the largest expense category at ${topExpenseCategory.percentage}% of total spending. ${
+      anomalies.length > 0
+        ? `Key risk identified: ${anomalies[0].description.toLowerCase()}.`
+        : "No critical anomalies detected in the analyzed periods."
+    } Recommendation: ${avgMargin > 20 ? "Maintain current expense discipline while reinvesting in growth channels." : "Focus on margin recovery by reviewing top expense categories and optimizing operational efficiency."}`;
+
     return {
       reportId,
       healthScore,
       chartData,
       expenseBreakdown: expenseBreakdown.slice(0, 8),
       anomalies: anomalies.slice(0, 5),
-      aiCommentary: `Financial analysis for uploaded file "${originalName}": Processed ${lines.length - 1} records. Total revenue: $${totalRevenue.toLocaleString()}, Total expenses: $${totalExpenses.toLocaleString()}. Calculated Health Score is ${healthScore}/100 based on net margin performance.`,
+      aiCommentary: commentary,
     };
   } catch (err) {
     console.error("[parseCsvFinancials error]", err);

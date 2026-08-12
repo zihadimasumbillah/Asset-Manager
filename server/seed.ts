@@ -880,13 +880,30 @@ export async function seedDatabase() {
     }
 
     for (const report of regionalReports) {
+      if (!report.fileName || report.healthScore === undefined || report.healthScore === null) {
+        continue;
+      }
+      if (!Array.isArray(report.chartData) || report.chartData.length === 0) {
+        continue;
+      }
+      if (!Array.isArray(report.anomalies) || !Array.isArray(report.expenseBreakdown)) {
+        continue;
+      }
+
+      const totalExpense = report.expenseBreakdown.reduce((sum, cat) => sum + (cat.amount || 0), 0);
+      const normalizedBreakdown = report.expenseBreakdown.map((cat) => ({
+        category: cat.category || "Other",
+        amount: Math.max(0, cat.amount || 0),
+        percentage: totalExpense > 0 ? Math.round((cat.amount / totalExpense) * 100) : 0,
+      }));
+
       await storage.createReport({
         userId: DEMO_USER_ID,
         status: "completed",
-        healthScore: report.healthScore,
+        healthScore: Math.max(0, Math.min(100, report.healthScore)),
         anomalies: report.anomalies,
         chartData: report.chartData,
-        expenseBreakdown: report.expenseBreakdown,
+        expenseBreakdown: normalizedBreakdown,
         aiCommentary: report.aiCommentary,
         fileName: report.fileName,
       });

@@ -1,4 +1,4 @@
-import { GitCompare, X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import { memo } from "react";
 
 import { AnomalyFeed } from "@/components/anomaly-feed";
@@ -30,7 +30,7 @@ export const CompareView = memo(function CompareView({ reports, onClear }: Compa
   const renderEmptySlot = (_side: "left" | "right") => (
     <Card className="h-full flex items-center justify-center">
       <CardContent className="text-center text-muted-foreground py-12">
-        <GitCompare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <CheckCircle2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
         <p className="text-sm">Select a report to compare</p>
       </CardContent>
     </Card>
@@ -102,7 +102,7 @@ export const CompareView = memo(function CompareView({ reports, onClear }: Compa
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <GitCompare className="w-4 h-4 text-primary" />
+            <CheckCircle2 className="w-4 h-4 text-primary" />
             Report Comparison
           </CardTitle>
           <Button
