@@ -32,22 +32,22 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db!.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db!.select().from(users).where(eq(users.username, username));
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [user] = await db!.insert(users).values(insertUser).returning();
     return user;
   }
 
   async createReport(report: InsertFinancialReport): Promise<FinancialReport> {
-    const [created] = await db
+    const [created] = await db!
       .insert(financialReports)
       .values(report as typeof financialReports.$inferInsert)
       .returning();
@@ -55,12 +55,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReport(id: string): Promise<FinancialReport | undefined> {
-    const [report] = await db.select().from(financialReports).where(eq(financialReports.id, id));
+    const [report] = await db!.select().from(financialReports).where(eq(financialReports.id, id));
     return report;
   }
 
   async getReportByFileName(fileName: string): Promise<FinancialReport | undefined> {
-    const [report] = await db
+    const [report] = await db!
       .select()
       .from(financialReports)
       .where(eq(financialReports.fileName, fileName));
@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLatestReportByUser(userId: string): Promise<FinancialReport | undefined> {
-    const [report] = await db
+    const [report] = await db!
       .select()
       .from(financialReports)
       .where(eq(financialReports.userId, userId))
@@ -78,7 +78,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReportsByUser(userId: string, limit = 50, offset = 0): Promise<FinancialReport[]> {
-    return db
+    return db!
       .select()
       .from(financialReports)
       .where(eq(financialReports.userId, userId))
@@ -91,7 +91,7 @@ export class DatabaseStorage implements IStorage {
     reportId: string,
     data: N8nResponse
   ): Promise<FinancialReport | undefined> {
-    const [updated] = await db
+    const [updated] = await db!
       .update(financialReports)
       .set({
         status: "completed",
@@ -107,7 +107,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateReportStatus(reportId: string, status: ReportStatus): Promise<void> {
-    await db.update(financialReports).set({ status }).where(eq(financialReports.id, reportId));
+    await db!.update(financialReports).set({ status }).where(eq(financialReports.id, reportId));
   }
 }
 
