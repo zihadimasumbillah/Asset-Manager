@@ -90,7 +90,39 @@ npm run dev
 
 The app seeds 4 regional demo reports on first start (US Tech, UK Retail, APAC Manufacturing, Great Lakes Hospitality).
 
----
+### Troubleshooting: Mock Data Not Displaying
+
+**Symptom:** The dashboard shows no reports in both development and Vercel production.
+
+**Root Causes:**
+
+1. **Missing `DATABASE_URL`** — The app requires a PostgreSQL connection string. Without it, the server fails to initialize the database layer and cannot seed or retrieve reports.
+2. **Seeding skipped in production** — A previous safeguard prevented `seedDatabase()` from running when `NODE_ENV=production`. On Vercel, `NODE_ENV` is always `production`, so demo reports were never created.
+3. **Silent seed failures** — In serverless environments, seed errors were swallowed, making the failure invisible.
+
+**Fixes Applied:**
+
+- `seedDatabase()` no longer skips production. It is controlled by `SEED_DEMO_DATA` (default: `true`). Set `SEED_DEMO_DATA=false` to disable seeding.
+- The server now **fails fast** at startup if `DATABASE_URL` is missing, with a clear error message.
+- Vercel serverless seeding logs errors instead of ignoring them.
+
+**Verification Steps:**
+
+```bash
+# 1. Ensure DATABASE_URL is set
+echo $DATABASE_URL
+
+# 2. Push schema to database
+npm run db:push
+
+# 3. Start dev server — seed runs automatically
+npm run dev
+
+# 4. Confirm reports exist
+curl http://localhost:5000/api/reports
+```
+
+---</p>
 
 ## Environment Variables
 
@@ -101,6 +133,7 @@ All variables are documented in [`.env.example`](./.env.example). Copy it to `.e
 | `DATABASE_URL`       | ✅               | PostgreSQL connection string                          |
 | `PORT`               | No (5000)        | Server port                                           |
 | `NODE_ENV`           | No (development) | `development` \| `production` \| `test`               |
+| `SEED_DEMO_DATA`     | No (true)        | Set to `false` to disable demo data seeding           |
 | `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n   |
 | `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                |
 | `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                              |

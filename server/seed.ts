@@ -876,10 +876,9 @@ const regionalReports = [
 
 export async function seedDatabase() {
   try {
-    const environment = process.env.NODE_ENV || "development";
-    const seedUserId = process.env.SEED_USER_ID || DEMO_USER_ID;
+    const seedDemoData = process.env.SEED_DEMO_DATA !== "false";
 
-    if (environment === "production") {
+    if (!seedDemoData) {
       return;
     }
 
@@ -891,7 +890,7 @@ export async function seedDatabase() {
       });
     }
 
-    const existing = await storage.getReportsByUser(seedUserId);
+    const existing = await storage.getReportsByUser(DEMO_USER_ID);
     if (existing.length > 0) {
       return;
     }
@@ -915,7 +914,7 @@ export async function seedDatabase() {
       }));
 
       await storage.createReport({
-        userId: seedUserId,
+        userId: DEMO_USER_ID,
         status: "completed",
         healthScore: Math.max(0, Math.min(100, report.healthScore)),
         anomalies: report.anomalies,
