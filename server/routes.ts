@@ -16,9 +16,9 @@ import {
   type ChartDataPoint,
   type ExpenseBreakdown,
 } from "../shared/schema.ts";
-import { verifyN8nSignature } from "./middleware/verifyN8nSignature.js";
-import { storage } from "./storage.js";
-import { toClientError } from "./utils/errors.js";
+import { verifyN8nSignature } from "./middleware/verifyN8nSignature.ts";
+import { storage } from "./storage.ts";
+import { toClientError } from "./utils/errors.ts";
 
 // ── Upload directory ──────────────────────────────────────────────────────────
 

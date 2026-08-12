@@ -2,12 +2,10 @@ import { createServer } from "http";
 
 import express from "express";
 
-import { registerRoutes } from "../server/routes.js";
+import { registerRoutes } from "../server/routes.ts";
 
 const app = express();
 const httpServer = createServer(app);
-
-console.log("[api] initializing...");
 
 app.use(
   express.json({
@@ -20,7 +18,5 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 registerRoutes(httpServer, app);
-
-console.log("[api] routes registered");
 
 export default app;

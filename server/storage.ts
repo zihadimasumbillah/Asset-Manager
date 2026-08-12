@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "./db.js";
+import { db } from "./db.ts";
 import {
   type FinancialReport,
   type InsertFinancialReport,
