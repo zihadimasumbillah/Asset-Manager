@@ -124,25 +124,92 @@ npm run dev
 curl http://localhost:5000/api/reports
 ```
 
+### Troubleshooting: AI Analysis Not Working
+
+**Symptom:** File uploads succeed, but reports complete without AI-generated health scores, anomalies, or commentary. Server logs show `TypeError: fetch failed` with `ENOTFOUND api.aihumax.com`.
+
+**Root Cause:** The AI integration requires `AI_API_KEY` and `AI_API_BASE_URL` to be set to valid values. If `AI_API_BASE_URL` is not configured, the server previously defaulted to `https://api.aihumax.com/v1`, which is not a resolvable hostname. This causes DNS resolution failures in the AI fetch call.
+
+**Fixes Applied:**
+
+- `AI_API_BASE_URL` is now **required** when `AI_API_KEY` is set. The server throws a clear error if it's missing.
+- Added a 30-second timeout to AI API requests to prevent serverless hangs.
+- Improved error logging to distinguish between missing configuration, network failures, and AI API errors.
+
+**Required Environment Variables:**
+
+```bash
+AI_API_KEY=your-ai-api-key
+AI_API_BASE_URL=https://your-ai-provider.com/v1
+AI_MODEL=gpt-4o-mini
+```
+
+**Verification:**
+
+```bash
+# Check that AI variables are set
+echo $AI_API_KEY
+echo $AI_API_BASE_URL
+
+# Upload a CSV and watch server logs for:
+# [direct AI analysis error] AI API error ...
+# OR successful AI processing without errors
+```
+
+### Troubleshooting: 403 Forbidden on Report Access
+
+**Symptom:** Server logs show successful `/api/auth/validate` requests (200), but subsequent `GET /api/reports/:id` requests return 403 Forbidden.
+
+**Root Cause:** The report exists in the database but belongs to a different `user_id` than the currently authenticated user. This commonly occurs when:
+
+1. Reports were created before the authentication migration with a hardcoded `user_id`
+2. The database contains reports from multiple users or seeding runs
+3. The `demo` user account was recreated, generating a new UUID, while old reports remain associated with the old UUID
+
+**Fixes Applied:**
+
+- The server now logs detailed ownership mismatch information (`report belongs to X, requested by Y`) to aid debugging.
+- Seed data creation uses the actual user's database-generated ID instead of hardcoded values.
+
+**Manual Fix for Existing Data:**
+If you have existing reports with mismatched `user_id`, you can update them:
+
+```bash
+# 1. Find your current user ID
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","password":"demo-password"}' | jq -r '.user.id'
+
+# 2. Update reports to belong to your user (PostgreSQL example)
+psql $DATABASE_URL -c "UPDATE financial_reports SET user_id = '<your-user-id>' WHERE user_id = 'old-user-id';"
+```
+
+**Verification:**
+
+```bash
+# Confirm reports belong to your user
+curl http://localhost:5000/api/reports -H "Authorization: Bearer <your-session-key>"
+```
+
 ---
 
 ## Environment Variables
 
 All variables are documented in [`.env.example`](./.env.example). Copy it to `.env` before starting.
 
-| Variable             | Required         | Description                                                 |
-| -------------------- | ---------------- | ----------------------------------------------------------- |
-| `DATABASE_URL`       | ✅               | PostgreSQL connection string                                |
-| `PORT`               | No (5000)        | Server port                                                 |
-| `NODE_ENV`           | No (development) | `development` \| `production` \| `test`                     |
-| `SEED_DEMO_DATA`     | No (true)        | Set to `false` to disable demo data seeding                 |
-| `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n         |
-| `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                      |
-| `AI_API_KEY`         | No               | API key for aihubmax AI analysis                            |
-| `AI_API_BASE_URL`    | No               | Base URL for AI API (default: `https://api.aihumax.com/v1`) |
-| `AI_MODEL`           | No               | Model identifier (default: `gpt-4o-mini`)                   |
-| `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                                    |
-| `N8N_WEBHOOK_SECRET` | ✅ if n8n used   | 32-char hex string for webhook signature verification       |
+| Variable             | Required         | Description                                              |
+| -------------------- | ---------------- | -------------------------------------------------------- |
+| `DATABASE_URL`       | ✅               | PostgreSQL connection string                             |
+| `PORT`               | No (5000)        | Server port                                              |
+| `NODE_ENV`           | No (development) | `development` \| `production` \| `test`                  |
+| `SEED_DEMO_DATA`     | No (true)        | Set to `false` to disable demo data seeding              |
+| `SERVER_BASE_URL`    | ✅ in prod       | Public base URL for file download links sent to n8n      |
+| `SESSION_SECRET`     | ✅ in prod       | 64-char hex string for session signing                   |
+| `AI_API_KEY`         | No               | API key for aihubmax AI analysis                         |
+| `AI_API_BASE_URL`    | ✅ if AI enabled | Base URL for AI API (e.g., `https://api.aihumax.com/v1`) |
+| `AI_MODEL`           | No               | Model identifier (default: `gpt-4o-mini`)                |
+| `N8N_WEBHOOK_URL`    | No               | n8n workflow trigger URL                                 |
+| `N8N_WEBHOOK_SECRET` | ✅ if n8n used   | 32-char hex string for webhook signature verification    |
 
 > **Never commit `.env`** — it is listed in `.gitignore`.
 

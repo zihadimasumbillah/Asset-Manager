@@ -35,12 +35,18 @@ if (!fs.existsSync(uploadDir)) {
 // ── AI Configuration ──────────────────────────────────────────────────────────
 
 const aiApiKey = process.env.AI_API_KEY;
-const aiApiBaseUrl = process.env.AI_API_BASE_URL || "https://api.aihumax.com/v1";
+const aiApiBaseUrl = process.env.AI_API_BASE_URL;
 const aiModel = process.env.AI_MODEL || "gpt-4o-mini";
 
 async function analyzeWithAI(csvContent: string, fileName: string): Promise<N8nResponse> {
   if (!aiApiKey) {
     throw new Error("AI_API_KEY is not configured");
+  }
+
+  if (!aiApiBaseUrl) {
+    throw new Error(
+      "AI_API_BASE_URL is not configured. Set it to your AI provider's base URL (e.g., https://api.aihumax.com/v1)"
+    );
   }
 
   return analyzeWithAihubmax(csvContent, fileName, aiApiKey, aiApiBaseUrl, aiModel);
@@ -649,6 +655,10 @@ export function registerRoutes(httpServer: Server, app: Express): Server {
         return res.status(404).json({ message: "Report not found." });
       }
       if (report.userId !== userId) {
+        const reportId = String(req.params.id);
+        console.error(
+          `[reports/:id] Forbidden: report ${reportId} belongs to ${report.userId}, requested by ${userId}`
+        );
         return res.status(403).json({ message: "Forbidden: Access denied." });
       }
       return res.json(report);
